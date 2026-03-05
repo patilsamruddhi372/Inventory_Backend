@@ -1,3 +1,5 @@
+// src/main/java/com/Inventory/Inventory_Backend/item/repository/ItemRepository.java
+
 package com.Inventory.Inventory_Backend.item.repository;
 
 import com.Inventory.Inventory_Backend.item.entity.Item;
@@ -11,11 +13,12 @@ import java.util.Optional;
 
 public interface ItemRepository extends JpaRepository<Item, Long> {
 
+    // ---- existing methods ----
+
     List<Item> findByBusinessIdAndIsActiveTrue(Long businessId);
 
     Optional<Item> findByIdAndBusinessId(Long id, Long businessId);
 
-    // ✅ safer: toggle only within same business, return updated row count
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
         UPDATE Item i
@@ -27,4 +30,8 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
            AND i.businessId = :businessId
     """)
     int toggleFavorite(@Param("id") Long id, @Param("businessId") Long businessId);
+
+    // ---- NEW: required by Purchase module ----
+
+    boolean existsByIdAndBusinessIdAndIsActiveTrue(Long id, Long businessId);
 }
