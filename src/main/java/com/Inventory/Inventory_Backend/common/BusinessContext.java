@@ -3,7 +3,7 @@ package com.Inventory.Inventory_Backend.common;
 import org.springframework.stereotype.Component;
 
 @Component
-public class context {
+public class BusinessContext {
 
     // Temporary: always return default business
     public Long getCurrentBusinessId() {

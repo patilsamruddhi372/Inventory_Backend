@@ -1,6 +1,6 @@
 package com.Inventory.Inventory_Backend.party.controller;
 
-import com.Inventory.Inventory_Backend.common.context;
+import com.Inventory.Inventory_Backend.common.BusinessContext;
 import com.Inventory.Inventory_Backend.party.dto.PartyCreateRequest;
 import com.Inventory.Inventory_Backend.party.dto.PartyResponse;
 import com.Inventory.Inventory_Backend.party.dto.PartyUpdateRequest;
@@ -16,10 +16,10 @@ import java.util.List;
 public class PartyController {
 
     private final PartyServiceImpl service;
-    private final context businessContext;
+    private final BusinessContext businessContext;
 
     public PartyController(PartyServiceImpl service,
-                           context businessContext) {
+                           BusinessContext businessContext) {
         this.service = service;
         this.businessContext = businessContext;
     }
