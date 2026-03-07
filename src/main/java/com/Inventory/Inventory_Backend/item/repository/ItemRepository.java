@@ -1,5 +1,3 @@
-// src/main/java/com/Inventory/Inventory_Backend/item/repository/ItemRepository.java
-
 package com.Inventory.Inventory_Backend.item.repository;
 
 import com.Inventory.Inventory_Backend.item.entity.Item;
@@ -13,25 +11,37 @@ import java.util.Optional;
 
 public interface ItemRepository extends JpaRepository<Item, Long> {
 
-    // ---- existing methods ----
-
+    // =========================
+    // FETCH ALL ACTIVE ITEMS
+    // =========================
     List<Item> findByBusinessIdAndIsActiveTrue(Long businessId);
 
+    // =========================
+    // FETCH ITEM BY ID + BUSINESS
+    // =========================
     Optional<Item> findByIdAndBusinessId(Long id, Long businessId);
 
+    // =========================
+    // CHECK ITEM EXISTS (USED BY PURCHASE / SALES)
+    // =========================
+    boolean existsByIdAndBusinessIdAndIsActiveTrue(Long id, Long businessId);
+
+    // =========================
+    // TOGGLE FAVORITE
+    // =========================
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
         UPDATE Item i
-           SET i.isFavorite = CASE
-                               WHEN i.isFavorite = true THEN false
-                               ELSE true
-                             END
+           SET i.isFavorite =
+               CASE
+                   WHEN i.isFavorite = true THEN false
+                   ELSE true
+               END
          WHERE i.id = :id
            AND i.businessId = :businessId
     """)
-    int toggleFavorite(@Param("id") Long id, @Param("businessId") Long businessId);
-
-    // ---- NEW: required by Purchase module ----
-
-    boolean existsByIdAndBusinessIdAndIsActiveTrue(Long id, Long businessId);
+    int toggleFavorite(
+            @Param("id") Long id,
+            @Param("businessId") Long businessId
+    );
 }

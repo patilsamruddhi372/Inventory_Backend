@@ -1,6 +1,5 @@
 package com.Inventory.Inventory_Backend.purchase.service.impl;
 
-import com.Inventory.Inventory_Backend.common.BusinessContext;
 import com.Inventory.Inventory_Backend.item.repository.ItemRepository;
 import com.Inventory.Inventory_Backend.party.repository.PartyRepository;
 import com.Inventory.Inventory_Backend.purchase.dto.PurchaseInvoiceItemDTO;
@@ -13,6 +12,7 @@ import com.Inventory.Inventory_Backend.purchase.exception.PurchaseInvoiceNotFoun
 import com.Inventory.Inventory_Backend.purchase.mapper.PurchaseInvoiceMapper;
 import com.Inventory.Inventory_Backend.purchase.repository.PurchaseInvoiceRepository;
 import com.Inventory.Inventory_Backend.purchase.service.PurchaseInvoiceService;
+import com.Inventory.Inventory_Backend.stock.service.StockService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
@@ -22,10 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -37,7 +34,7 @@ public class PurchaseInvoiceServiceImpl implements PurchaseInvoiceService {
     private final PartyRepository partyRepository;
     private final ItemRepository itemRepository;
     private final PurchaseInvoiceMapper mapper;
-    private final BusinessContext businessContext;
+    private final StockService stockService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -45,12 +42,11 @@ public class PurchaseInvoiceServiceImpl implements PurchaseInvoiceService {
     // =========================================================
     // CREATE PURCHASE
     // =========================================================
-
     @Override
     @Transactional
-    public PurchaseInvoiceResponseDTO createPurchaseInvoice(PurchaseInvoiceRequestDTO request) {
-
-        Long businessId = businessContext.getCurrentBusinessId();
+    public PurchaseInvoiceResponseDTO createPurchaseInvoice(
+            Long businessId,
+            PurchaseInvoiceRequestDTO request) {
 
         validatePartyBelongsToBusiness(request.getPartyId(), businessId);
         validateBillNumberIsUnique(businessId, request.getBillNumber());
@@ -58,25 +54,36 @@ public class PurchaseInvoiceServiceImpl implements PurchaseInvoiceService {
         validateNoDuplicateItemIdsInRequest(request.getItems());
 
         PurchaseInvoice invoice = mapper.toEntity(request);
-        invoice.setBusinessId(businessId);
 
-        // items are built in calculateInvoiceTotals
+        invoice.setBusinessId(businessId);
+        invoice.setPaymentType(request.getPaymentType());   // ✅ ADDED
         invoice.setItems(new ArrayList<>());
 
         calculateInvoiceTotals(invoice, request);
 
         PurchaseInvoice saved = invoiceRepository.save(invoice);
 
-        log.info("Created purchase invoice id={} for business={}", saved.getId(), businessId);
+        // UPDATE STOCK
+        for (PurchaseInvoiceItem item : saved.getItems()) {
+
+            stockService.increaseStock(
+                    saved.getBusinessId(),
+                    item.getItemId(),
+                    item.getQuantity(),
+                    saved.getId()
+            );
+        }
+
+        log.info("Created purchase invoice id={} business={}", saved.getId(), businessId);
+
         return mapper.toResponseDTO(saved);
     }
 
     // =========================================================
-    // GET PURCHASE BY ID
+    // GET BY ID
     // =========================================================
-
     @Override
-    public PurchaseInvoiceResponseDTO getPurchaseInvoiceById(Long id, Long businessId) {
+    public PurchaseInvoiceResponseDTO getPurchaseInvoiceById(Long businessId, Long id) {
 
         PurchaseInvoice invoice = invoiceRepository
                 .findByIdWithItemsAndParty(id, businessId)
@@ -86,27 +93,26 @@ public class PurchaseInvoiceServiceImpl implements PurchaseInvoiceService {
     }
 
     // =========================================================
-    // GET ALL PURCHASES
+    // GET ALL
     // =========================================================
-
     @Override
     public List<PurchaseInvoiceResponseDTO> getAllPurchaseInvoices(Long businessId) {
 
         List<PurchaseInvoice> invoices =
-                invoiceRepository.findByBusinessIdOrderByCreatedAtDesc(businessId);
+                invoiceRepository.findByBusinessIdAndIsDeletedFalseOrderByCreatedAtDesc(businessId);
 
         return mapper.toResponseDTOList(invoices);
     }
 
     // =========================================================
-    // UPDATE PURCHASE  ✅ FIXED
+    // UPDATE
     // =========================================================
-
     @Override
     @Transactional
-    public PurchaseInvoiceResponseDTO updatePurchaseInvoice(Long id, PurchaseInvoiceRequestDTO request) {
-
-        Long businessId = businessContext.getCurrentBusinessId();
+    public PurchaseInvoiceResponseDTO updatePurchaseInvoice(
+            Long businessId,
+            Long id,
+            PurchaseInvoiceRequestDTO request) {
 
         PurchaseInvoice invoice = invoiceRepository
                 .findByIdWithItemsAndParty(id, businessId)
@@ -117,53 +123,59 @@ public class PurchaseInvoiceServiceImpl implements PurchaseInvoiceService {
         validateAllItemsBelongToBusiness(request.getItems(), businessId);
         validateNoDuplicateItemIdsInRequest(request.getItems());
 
-        // update invoice header fields
         invoice.setPartyId(request.getPartyId());
         invoice.setBillNumber(request.getBillNumber().trim());
         invoice.setBillDate(request.getBillDate());
         invoice.setDueDate(request.getDueDate());
+        invoice.setPaymentType(request.getPaymentType());   // ✅ ADDED
         invoice.setNotes(request.getNotes());
 
-        // 1) remove old items (orphanRemoval = true will delete them)
         invoice.getItems().clear();
-
-        // 2) IMPORTANT: force DELETEs to hit DB before new INSERTs
         entityManager.flush();
 
-        // 3) add new items + recalculate totals
         calculateInvoiceTotals(invoice, request);
 
         PurchaseInvoice saved = invoiceRepository.save(invoice);
 
-        log.info("Updated purchase invoice id={} for business={}", saved.getId(), businessId);
+        // UPDATE STOCK AGAIN
+        for (PurchaseInvoiceItem item : saved.getItems()) {
+
+            stockService.increaseStock(
+                    saved.getBusinessId(),
+                    item.getItemId(),
+                    item.getQuantity(),
+                    saved.getId()
+            );
+        }
+
+        log.info("Updated purchase invoice id={} business={}", saved.getId(), businessId);
+
         return mapper.toResponseDTO(saved);
     }
 
     // =========================================================
-    // DELETE PURCHASE (Soft Delete)
+    // DELETE
     // =========================================================
-
     @Override
     @Transactional
-    public void deletePurchaseInvoice(Long id) {
-
-        Long businessId = businessContext.getCurrentBusinessId();
+    public void deletePurchaseInvoice(Long businessId, Long id) {
 
         PurchaseInvoice invoice = invoiceRepository
-                .findByIdAndBusinessId(id, businessId)
+                .findByIdAndBusinessIdAndIsDeletedFalse(id, businessId)
                 .orElseThrow(() -> new PurchaseInvoiceNotFoundException(id, businessId));
 
         invoice.setIsDeleted(true);
+
         invoiceRepository.save(invoice);
 
-        log.info("Soft-deleted purchase invoice id={} for business={}", id, businessId);
+        log.info("Deleted purchase invoice id={} business={}", id, businessId);
     }
 
     // =========================================================
     // CALCULATE TOTALS
     // =========================================================
-
-    private void calculateInvoiceTotals(PurchaseInvoice invoice, PurchaseInvoiceRequestDTO request) {
+    private void calculateInvoiceTotals(PurchaseInvoice invoice,
+                                        PurchaseInvoiceRequestDTO request) {
 
         BigDecimal subtotal = BigDecimal.ZERO;
         BigDecimal totalTax = BigDecimal.ZERO;
@@ -174,7 +186,9 @@ public class PurchaseInvoiceServiceImpl implements PurchaseInvoiceService {
                     .multiply(itemDTO.getRate())
                     .setScale(2, RoundingMode.HALF_UP);
 
-            BigDecimal gst = itemDTO.getGstRate() == null ? BigDecimal.ZERO : itemDTO.getGstRate();
+            BigDecimal gst = itemDTO.getGstRate() == null
+                    ? BigDecimal.ZERO
+                    : itemDTO.getGstRate();
 
             BigDecimal tax = base
                     .multiply(gst)
@@ -186,7 +200,7 @@ public class PurchaseInvoiceServiceImpl implements PurchaseInvoiceService {
             PurchaseInvoiceItem item = mapper.toItemEntity(itemDTO);
             item.setTotal(base.add(tax));
 
-            invoice.addItem(item); // sets purchaseInvoice + businessId
+            invoice.addItem(item);
         }
 
         BigDecimal grandTotal = subtotal.add(totalTax);
@@ -210,10 +224,15 @@ public class PurchaseInvoiceServiceImpl implements PurchaseInvoiceService {
     // =========================================================
 
     private void validateNoDuplicateItemIdsInRequest(List<PurchaseInvoiceItemDTO> items) {
+
         Set<Long> seen = new HashSet<>();
+
         for (PurchaseInvoiceItemDTO dto : items) {
+
             if (!seen.add(dto.getItemId())) {
-                throw new IllegalArgumentException("Duplicate itemId in request: " + dto.getItemId());
+
+                throw new IllegalArgumentException(
+                        "Duplicate itemId in request: " + dto.getItemId());
             }
         }
     }
@@ -221,35 +240,48 @@ public class PurchaseInvoiceServiceImpl implements PurchaseInvoiceService {
     private void validatePartyBelongsToBusiness(Long partyId, Long businessId) {
 
         if (!partyRepository.existsByIdAndBusinessIdAndIsActiveTrue(partyId, businessId)) {
-            throw new IllegalArgumentException("Active party not found with ID: " + partyId);
+
+            throw new IllegalArgumentException(
+                    "Active party not found with ID: " + partyId);
         }
     }
 
     private void validateBillNumberIsUnique(Long businessId, String billNumber) {
 
-        if (invoiceRepository.existsByBusinessIdAndBillNumber(businessId, billNumber.trim())) {
+        if (invoiceRepository.existsByBusinessIdAndBillNumberAndIsDeletedFalse(
+                businessId, billNumber.trim())) {
+
             throw new DuplicateBillNumberException(billNumber);
         }
     }
 
-    private void validateBillNumberIsUniqueForUpdate(Long businessId, String billNumber, Long invoiceId) {
+    private void validateBillNumberIsUniqueForUpdate(Long businessId,
+                                                     String billNumber,
+                                                     Long invoiceId) {
 
-        if (invoiceRepository.existsByBusinessIdAndBillNumberAndIdNot(
+        if (invoiceRepository.existsByBusinessIdAndBillNumberAndIdNotAndIsDeletedFalse(
                 businessId, billNumber.trim(), invoiceId)) {
+
             throw new DuplicateBillNumberException(billNumber);
         }
     }
 
-    private void validateAllItemsBelongToBusiness(List<PurchaseInvoiceItemDTO> items, Long businessId) {
+    private void validateAllItemsBelongToBusiness(List<PurchaseInvoiceItemDTO> items,
+                                                  Long businessId) {
 
         for (PurchaseInvoiceItemDTO dto : items) {
-            if (!itemRepository.existsByIdAndBusinessIdAndIsActiveTrue(dto.getItemId(), businessId)) {
-                throw new IllegalArgumentException("Active item not found with ID: " + dto.getItemId());
+
+            if (!itemRepository.existsByIdAndBusinessIdAndIsActiveTrue(
+                    dto.getItemId(), businessId)) {
+
+                throw new IllegalArgumentException(
+                        "Active item not found with ID: " + dto.getItemId());
             }
         }
     }
 
     private String deriveStatus(BigDecimal total, BigDecimal paid) {
+
         if (paid.compareTo(BigDecimal.ZERO) == 0) return "pending";
         if (paid.compareTo(total) >= 0) return "paid";
         return "partial";

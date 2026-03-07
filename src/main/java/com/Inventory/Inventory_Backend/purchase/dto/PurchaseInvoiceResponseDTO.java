@@ -17,13 +17,23 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class PurchaseInvoiceResponseDTO {
 
-    private Long id;
+    // =========================================================
+    // IDENTIFIERS
+    // =========================================================
 
-    // Tenant reference (safe to expose in response)
+    private Long id;
     private Long businessId;
+
+    // =========================================================
+    // PARTY INFO
+    // =========================================================
 
     private Long partyId;
     private String partyName;
+
+    // =========================================================
+    // BILL INFO
+    // =========================================================
 
     private String billNumber;
 
@@ -33,22 +43,48 @@ public class PurchaseInvoiceResponseDTO {
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate dueDate;
 
+    // =========================================================
+    // FINANCIALS
+    // =========================================================
+
     private BigDecimal subtotal;
     private BigDecimal totalTax;
     private BigDecimal grandTotal;
 
+    // =========================================================
+    // PAYMENT
+    // =========================================================
+
+    private String paymentType;   // ✅ ADDED
+
     private BigDecimal amountPaid;
     private BigDecimal balance;
 
+    // =========================================================
+    // STATUS
+    // =========================================================
+
     private String status;
 
+    // =========================================================
+    // NOTES
+    // =========================================================
+
     private String notes;
+
+    // =========================================================
+    // AUDIT
+    // =========================================================
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdAt;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime updatedAt;
+
+    // =========================================================
+    // ITEMS
+    // =========================================================
 
     private List<PurchaseInvoiceItemResponseDTO> items;
 

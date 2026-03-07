@@ -1,7 +1,7 @@
 package com.Inventory.Inventory_Backend.item.controller;
 
 import com.Inventory.Inventory_Backend.item.dto.ItemRequestDTO;
-import com.Inventory.Inventory_Backend.item.dto.itemResponceDTO;
+import com.Inventory.Inventory_Backend.item.dto.ItemResponseDTO;
 import com.Inventory.Inventory_Backend.item.service.ItemService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,59 +18,81 @@ import java.util.Set;
 @CrossOrigin(origins = "*")
 public class ItemController {
 
-    private final ItemService service;
+    private final ItemService itemService;
 
-    // ─── READ ALL ─────────────────────────────────
+    // =========================
+    // GET ALL ITEMS
+    // =========================
     @GetMapping
-    public ResponseEntity<List<itemResponceDTO>> getAll() {
-        return ResponseEntity.ok(service.getAll());              // ✅ JUST THIS. Nothing else.
+    public ResponseEntity<List<ItemResponseDTO>> getAllItems() {
+        return ResponseEntity.ok(itemService.getAll());
     }
 
-    // ─── READ ONE ─────────────────────────────────
+    // =========================
+    // GET ITEM BY ID
+    // =========================
     @GetMapping("/{id}")
-    public ResponseEntity<itemResponceDTO> getById(
+    public ResponseEntity<ItemResponseDTO> getItemById(
             @PathVariable Long id
     ) {
-        return ResponseEntity.ok(service.getById(id));
+        return ResponseEntity.ok(itemService.getById(id));
     }
 
-    // ─── CREATE ───────────────────────────────────
+    // =========================
+    // CREATE ITEM
+    // =========================
     @PostMapping
-    public ResponseEntity<itemResponceDTO> create(
+    public ResponseEntity<ItemResponseDTO> createItem(
             @Valid @RequestBody ItemRequestDTO dto
     ) {
+        ItemResponseDTO createdItem = itemService.create(dto);
+
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(service.create(dto));
+                .body(createdItem);
     }
 
-    // ─── UPDATE ───────────────────────────────────
+    // =========================
+    // UPDATE ITEM
+    // =========================
     @PutMapping("/{id}")
-    public ResponseEntity<itemResponceDTO> update(
+    public ResponseEntity<ItemResponseDTO> updateItem(
             @PathVariable Long id,
             @Valid @RequestBody ItemRequestDTO dto
     ) {
-        return ResponseEntity.ok(service.update(id, dto));
+        return ResponseEntity.ok(itemService.update(id, dto));
     }
 
-    // ─── DELETE (soft) ────────────────────────────
+    // =========================
+    // DELETE ITEM (SOFT DELETE)
+    // =========================
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        service.delete(id);
+    public ResponseEntity<Void> deleteItem(
+            @PathVariable Long id
+    ) {
+        itemService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
-    // ─── TOGGLE FAVORITE ──────────────────────────
+    // =========================
+    // TOGGLE FAVORITE
+    // =========================
     @PatchMapping("/{id}/favorite")
-    public ResponseEntity<Void> toggleFavorite(@PathVariable Long id) {
-        service.toggleFavorite(id);
+    public ResponseEntity<Void> toggleFavorite(
+            @PathVariable Long id
+    ) {
+        itemService.toggleFavorite(id);
         return ResponseEntity.ok().build();
     }
 
-    // ─── BULK DELETE ──────────────────────────────
+    // =========================
+    // BULK DELETE
+    // =========================
     @DeleteMapping("/bulk")
-    public ResponseEntity<Void> bulkDelete(@RequestBody Set<Long> ids) {
-        service.bulkDelete(ids);
+    public ResponseEntity<Void> bulkDelete(
+            @RequestBody Set<Long> ids
+    ) {
+        itemService.bulkDelete(ids);
         return ResponseEntity.noContent().build();
     }
 }

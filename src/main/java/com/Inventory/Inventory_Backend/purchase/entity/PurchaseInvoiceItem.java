@@ -16,10 +16,6 @@ import java.math.BigDecimal;
                 )
         }
 )
-
-// ✅ REMOVED @SQLDelete  → orphanRemoval now does REAL DELETE
-// ✅ REMOVED @Where       → Hibernate sees all items in collection
-
 @Getter
 @Setter
 @NoArgsConstructor
@@ -29,20 +25,32 @@ import java.math.BigDecimal;
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class PurchaseInvoiceItem {
 
+    // =========================================================
+    // PRIMARY KEY
+    // =========================================================
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @EqualsAndHashCode.Include
     private Long id;
 
+    // =========================================================
+    // TENANT
+    // =========================================================
+
     @Column(name = "business_id", nullable = false)
     private Long businessId;
+
+    // =========================================================
+    // ITEM REFERENCE
+    // =========================================================
 
     @Column(name = "item_id", nullable = false)
     private Long itemId;
 
-    @Column(name = "is_deleted", nullable = false)
-    @Builder.Default
-    private Boolean isDeleted = false;
+    // =========================================================
+    // QUANTITY
+    // =========================================================
 
     @Column(nullable = false, precision = 15, scale = 3)
     private BigDecimal quantity;
@@ -50,20 +58,37 @@ public class PurchaseInvoiceItem {
     @Column(length = 50)
     private String unit;
 
+    // =========================================================
+    // PRICE
+    // =========================================================
+
     @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal rate;
 
+    @Builder.Default
     @Column(name = "gst_rate", precision = 5, scale = 2)
-    private BigDecimal gstRate;
+    private BigDecimal gstRate = BigDecimal.ZERO;
+
+    // =========================================================
+    // TOTAL
+    // =========================================================
 
     @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal total;
+
+    // =========================================================
+    // RELATIONSHIPS
+    // =========================================================
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "purchase_invoice_id", nullable = false)
     private PurchaseInvoice purchaseInvoice;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "item_id", insertable = false, updatable = false)
+    @JoinColumn(
+            name = "item_id",
+            insertable = false,
+            updatable = false
+    )
     private Item item;
 }

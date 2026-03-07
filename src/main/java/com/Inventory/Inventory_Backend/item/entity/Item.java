@@ -19,44 +19,84 @@ public class Item {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // maps to business_id
+    // =========================
+    // TENANT FIELD
+    // =========================
+
     @Column(name = "business_id")
     private Long businessId;
 
-    // basic
-    private String name;          // NOT NULL in DB
-    private String type;          // goods / service
+    // =========================
+    // BASIC INFO
+    // =========================
+
+    @Column(nullable = false)
+    private String name;
+
+    // GOODS / SERVICE
+    private String type;
+
     private String category;
+
     private String sku;
+
     private String unit;
 
-    // stock
-    private Integer stock;
+    // =========================
+    // INVENTORY INFO
+    // =========================
+
+    // Initial quantity when item created
+    private BigDecimal openingStock;
+
     private Integer lowStockAlert;
 
-    // prices
+    // =========================
+    // PRICING
+    // =========================
+
     private BigDecimal salePrice;
+
     private BigDecimal purchasePrice;
+
     private BigDecimal gstRate;
+
     private BigDecimal mrpPrice;
 
-    // discounts (default sale/purchase discounts for this item)
+    // =========================
+    // DEFAULT DISCOUNTS
+    // =========================
+
     private BigDecimal saleDiscountPercent;
+
     private BigDecimal saleDiscountAmount;
+
     private BigDecimal purchaseDiscountPercent;
+
     private BigDecimal purchaseDiscountAmount;
 
-    // details
+    // =========================
+    // DETAILS
+    // =========================
+
     private String brand;
 
-    // maps to hsn_code column in DB
     @Column(name = "hsn_code")
     private String hsn;
 
-    // flags
+    // =========================
+    // FLAGS
+    // =========================
+
     private Boolean isFavorite = false;
+
     private Boolean isActive = true;
 
+    // =========================
+    // AUDIT FIELDS
+    // =========================
+
     private LocalDateTime createdAt;
+
     private LocalDateTime updatedAt;
 }

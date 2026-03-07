@@ -13,23 +13,45 @@ import java.math.BigDecimal;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class PurchaseInvoiceItemResponseDTO {
 
-    private Long id;
+    // =========================================================
+    // IDENTIFIERS
+    // =========================================================
 
+    private Long id;
     private Long itemId;
+
+    // =========================================================
+    // ITEM DETAILS
+    // =========================================================
 
     private String itemName;
 
-    private BigDecimal quantity;
+    // =========================================================
+    // QUANTITY & UNIT
+    // =========================================================
 
+    private BigDecimal quantity;
     private String unit;
+
+    // =========================================================
+    // PRICE
+    // =========================================================
 
     private BigDecimal rate;
 
+    // =========================================================
+    // TAX
+    // =========================================================
+
     private BigDecimal gstRate;
 
-    // calculated tax for this line item
+    // calculated tax amount for this line
     private BigDecimal taxAmount;
 
-    // total including tax
+    // =========================================================
+    // TOTAL
+    // =========================================================
+
+    // total = base + tax
     private BigDecimal total;
 }

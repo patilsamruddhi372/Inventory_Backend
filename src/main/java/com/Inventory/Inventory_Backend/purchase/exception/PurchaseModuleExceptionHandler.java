@@ -1,7 +1,6 @@
-// src/main/java/com/Inventory/Inventory_Backend/purchase/exception/PurchaseModuleExceptionHandler.java
-
 package com.Inventory.Inventory_Backend.purchase.exception;
 
+import com.Inventory.Inventory_Backend.sales.common.dto.ErrorResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -11,70 +10,119 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 @RestControllerAdvice(basePackages = "com.Inventory.Inventory_Backend.purchase")
 @Slf4j
 public class PurchaseModuleExceptionHandler {
 
+    // =========================================================
+    // PURCHASE NOT FOUND
+    // =========================================================
+
     @ExceptionHandler(PurchaseInvoiceNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleNotFound(
-            PurchaseInvoiceNotFoundException ex) {
-        log.warn("Not found: {}", ex.getMessage());
-        return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());
+    public ResponseEntity<ErrorResponse> handleNotFound(PurchaseInvoiceNotFoundException ex) {
+
+        log.warn("Purchase invoice not found: {}", ex.getMessage());
+
+        return buildResponse(
+                HttpStatus.NOT_FOUND,
+                ex.getMessage(),
+                null
+        );
     }
+
+    // =========================================================
+    // DUPLICATE BILL NUMBER
+    // =========================================================
 
     @ExceptionHandler(DuplicateBillNumberException.class)
-    public ResponseEntity<Map<String, Object>> handleDuplicate(
-            DuplicateBillNumberException ex) {
-        log.warn("Duplicate: {}", ex.getMessage());
-        return buildResponse(HttpStatus.CONFLICT, ex.getMessage());
+    public ResponseEntity<ErrorResponse> handleDuplicate(DuplicateBillNumberException ex) {
+
+        log.warn("Duplicate bill number detected: {}", ex.getMessage());
+
+        return buildResponse(
+                HttpStatus.CONFLICT,
+                ex.getMessage(),
+                null
+        );
     }
+
+    // =========================================================
+    // BAD REQUEST
+    // =========================================================
 
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Map<String, Object>> handleBadRequest(
-            IllegalArgumentException ex) {
-        log.warn("Bad request: {}", ex.getMessage());
-        return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
+    public ResponseEntity<ErrorResponse> handleBadRequest(IllegalArgumentException ex) {
+
+        log.warn("Bad request in purchase module: {}", ex.getMessage());
+
+        return buildResponse(
+                HttpStatus.BAD_REQUEST,
+                ex.getMessage(),
+                null
+        );
     }
+
+    // =========================================================
+    // VALIDATION ERRORS
+    // =========================================================
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, Object>> handleValidation(
-            MethodArgumentNotValidException ex) {
+    public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
 
         Map<String, String> fieldErrors = new HashMap<>();
-        ex.getBindingResult().getFieldErrors().forEach(err ->
-                fieldErrors.put(err.getField(), err.getDefaultMessage())
+
+        ex.getBindingResult()
+                .getFieldErrors()
+                .forEach(error ->
+                        fieldErrors.put(
+                                error.getField(),
+                                error.getDefaultMessage()
+                        )
+                );
+
+        log.warn("Validation error in purchase module: {}", fieldErrors);
+
+        return buildResponse(
+                HttpStatus.BAD_REQUEST,
+                "Validation failed",
+                fieldErrors
         );
-
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("timestamp", LocalDateTime.now());
-        body.put("status", HttpStatus.BAD_REQUEST.value());
-        body.put("error", "Validation Failed");
-        body.put("fieldErrors", fieldErrors);
-
-        return ResponseEntity.badRequest().body(body);
     }
+
+    // =========================================================
+    // GENERIC ERROR
+    // =========================================================
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, Object>> handleGeneral(Exception ex) {
+    public ResponseEntity<ErrorResponse> handleGeneral(Exception ex) {
+
         log.error("Unexpected error in purchase module", ex);
+
         return buildResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR,
-                "An unexpected error occurred"
+                "An unexpected error occurred",
+                null
         );
     }
 
-    private ResponseEntity<Map<String, Object>> buildResponse(
-            HttpStatus status, String message) {
+    // =========================================================
+    // RESPONSE BUILDER
+    // =========================================================
 
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("timestamp", LocalDateTime.now());
-        body.put("status", status.value());
-        body.put("error", status.getReasonPhrase());
-        body.put("message", message);
+    private ResponseEntity<ErrorResponse> buildResponse(
+            HttpStatus status,
+            String message,
+            Map<String, String> fieldErrors) {
 
-        return ResponseEntity.status(status).body(body);
+        ErrorResponse response = ErrorResponse.builder()
+                .status(status.value())
+                .message(message)
+                .timestamp(LocalDateTime.now())
+                .fieldErrors(fieldErrors)
+                .build();
+
+        return ResponseEntity.status(status).body(response);
     }
 }

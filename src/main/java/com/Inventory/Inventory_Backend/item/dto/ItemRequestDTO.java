@@ -12,7 +12,10 @@ import java.math.BigDecimal;
 @Builder
 public class ItemRequestDTO {
 
-    // ─── Required ─────────────────────────────────
+    // ===============================
+    // REQUIRED
+    // ===============================
+
     @NotBlank(message = "Item name is required")
     @Size(min = 1, max = 200, message = "Name must be 1–200 characters")
     private String name;
@@ -24,7 +27,10 @@ public class ItemRequestDTO {
     )
     private String type;
 
-    // ─── Optional ─────────────────────────────────
+    // ===============================
+    // OPTIONAL BASIC INFO
+    // ===============================
+
     @Size(max = 50, message = "SKU max 50 characters")
     private String sku;
 
@@ -37,7 +43,10 @@ public class ItemRequestDTO {
     @Size(max = 30, message = "Unit max 30 characters")
     private String unit;
 
-    // ─── Prices ───────────────────────────────────
+    // ===============================
+    // PRICES
+    // ===============================
+
     @DecimalMin(value = "0.0", message = "Sale price cannot be negative")
     private BigDecimal salePrice;
 
@@ -47,14 +56,20 @@ public class ItemRequestDTO {
     @DecimalMin(value = "0.0", message = "MRP price cannot be negative")
     private BigDecimal mrpPrice;
 
-    // ─── Stock ────────────────────────────────────
-    @Min(value = 0, message = "Stock cannot be negative")
-    private Integer stock;
+    // ===============================
+    // INVENTORY
+    // ===============================
+
+    @DecimalMin(value = "0.0", message = "Opening stock cannot be negative")
+    private BigDecimal openingStock;
 
     @Min(value = 0, message = "Low stock alert cannot be negative")
     private Integer lowStockAlert;
 
-    // ─── Tax ──────────────────────────────────────
+    // ===============================
+    // TAX
+    // ===============================
+
     @DecimalMin(value = "0.0", message = "GST rate cannot be negative")
     @DecimalMax(value = "100.0", message = "GST rate cannot exceed 100%")
     private BigDecimal gstRate;
@@ -62,7 +77,10 @@ public class ItemRequestDTO {
     @Size(max = 20, message = "HSN max 20 characters")
     private String hsn;
 
-    // ─── Discounts ────────────────────────────────
+    // ===============================
+    // DEFAULT DISCOUNTS
+    // ===============================
+
     @DecimalMin(value = "0.0", message = "Sale discount % cannot be negative")
     @DecimalMax(value = "100.0", message = "Sale discount % cannot exceed 100")
     private BigDecimal saleDiscountPercent;
@@ -77,7 +95,11 @@ public class ItemRequestDTO {
     @DecimalMin(value = "0.0", message = "Purchase discount amount cannot be negative")
     private BigDecimal purchaseDiscountAmount;
 
-    // ─── Flags ────────────────────────────────────
+    // ===============================
+    // FLAGS
+    // ===============================
+
     private Boolean isActive;
+
     private Boolean isFavorite;
 }

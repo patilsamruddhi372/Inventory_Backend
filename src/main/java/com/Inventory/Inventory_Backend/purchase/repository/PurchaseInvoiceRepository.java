@@ -12,39 +12,70 @@ import java.util.Optional;
 @Repository
 public interface PurchaseInvoiceRepository extends JpaRepository<PurchaseInvoice, Long> {
 
-    List<PurchaseInvoice> findByBusinessIdOrderByCreatedAtDesc(Long businessId);
+    // ==========================================================
+    // FIND ALL PURCHASES
+    // ==========================================================
+    List<PurchaseInvoice> findByBusinessIdAndIsDeletedFalseOrderByCreatedAtDesc(Long businessId);
 
-    Optional<PurchaseInvoice> findByIdAndBusinessId(Long id, Long businessId);
+    // ==========================================================
+    // FIND BY ID
+    // ==========================================================
+    Optional<PurchaseInvoice> findByIdAndBusinessIdAndIsDeletedFalse(
+            Long id,
+            Long businessId
+    );
 
-    boolean existsByBusinessIdAndBillNumber(Long businessId, String billNumber);
+    // ==========================================================
+    // BILL NUMBER VALIDATION
+    // ==========================================================
+    boolean existsByBusinessIdAndBillNumberAndIsDeletedFalse(
+            Long businessId,
+            String billNumber
+    );
 
-    // ⭐ useful for update validation
-    boolean existsByBusinessIdAndBillNumberAndIdNot(
+    boolean existsByBusinessIdAndBillNumberAndIdNotAndIsDeletedFalse(
             Long businessId,
             String billNumber,
             Long id
     );
 
-    List<PurchaseInvoice> findByBusinessIdAndStatusOrderByCreatedAtDesc(
-            Long businessId, String status
+    // ==========================================================
+    // FILTER BY STATUS
+    // ==========================================================
+    List<PurchaseInvoice> findByBusinessIdAndStatusAndIsDeletedFalseOrderByCreatedAtDesc(
+            Long businessId,
+            String status
     );
 
-    List<PurchaseInvoice> findByBusinessIdAndPartyIdOrderByCreatedAtDesc(
-            Long businessId, Long partyId
+    // ==========================================================
+    // FILTER BY PARTY
+    // ==========================================================
+    List<PurchaseInvoice> findByBusinessIdAndPartyIdAndIsDeletedFalseOrderByCreatedAtDesc(
+            Long businessId,
+            Long partyId
     );
 
-    // ✅ Since @Where is removed from PurchaseInvoiceItem,
-    //    no filter conflict anymore. This query works cleanly.
-    //    Items are HARD-DELETED by orphanRemoval, so only
-    //    real active items exist in the table.
+    // ==========================================================
+    // FILTER BY PAYMENT TYPE (NEW - OPTIONAL)
+    // ==========================================================
+    List<PurchaseInvoice> findByBusinessIdAndPaymentTypeAndIsDeletedFalseOrderByCreatedAtDesc(
+            Long businessId,
+            String paymentType
+    );
+
+    // ==========================================================
+    // FETCH INVOICE WITH ITEMS + PARTY
+    // ==========================================================
     @Query("""
-            SELECT DISTINCT pi FROM PurchaseInvoice pi
+            SELECT DISTINCT pi
+            FROM PurchaseInvoice pi
             LEFT JOIN FETCH pi.items pii
             LEFT JOIN FETCH pi.party
             LEFT JOIN FETCH pii.item
             WHERE pi.id = :id
             AND pi.businessId = :businessId
-            """)
+            AND pi.isDeleted = false
+           """)
     Optional<PurchaseInvoice> findByIdWithItemsAndParty(
             @Param("id") Long id,
             @Param("businessId") Long businessId

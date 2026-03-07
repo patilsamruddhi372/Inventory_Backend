@@ -17,89 +17,92 @@ import java.util.List;
 @RequestMapping("/api/purchases")
 @RequiredArgsConstructor
 @Slf4j
+@CrossOrigin(origins = "*")
 public class PurchaseInvoiceController {
 
     private final PurchaseInvoiceService purchaseInvoiceService;
     private final BusinessContext businessContext;
 
-    /**
-     * CREATE PURCHASE
-     * POST /api/purchases
-     */
+    // ==========================================================
+    // CREATE PURCHASE
+    // ==========================================================
     @PostMapping
     public ResponseEntity<PurchaseInvoiceResponseDTO> createPurchaseInvoice(
             @Valid @RequestBody PurchaseInvoiceRequestDTO requestDTO) {
 
-        log.info("POST /api/purchases — bill: {}", requestDTO.getBillNumber());
+        Long businessId = businessContext.getCurrentBusinessId();
+
+        log.info("POST /api/purchases — businessId={}, billNumber={}",
+                businessId, requestDTO.getBillNumber());
 
         PurchaseInvoiceResponseDTO response =
-                purchaseInvoiceService.createPurchaseInvoice(requestDTO);
+                purchaseInvoiceService.createPurchaseInvoice(businessId, requestDTO);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    /**
-     * GET ALL PURCHASES
-     * GET /api/purchases
-     */
+    // ==========================================================
+    // GET ALL PURCHASES
+    // ==========================================================
     @GetMapping
     public ResponseEntity<List<PurchaseInvoiceResponseDTO>> getAllPurchaseInvoices() {
 
         Long businessId = businessContext.getCurrentBusinessId();
 
-        log.info("GET /api/purchases — business: {}", businessId);
+        log.info("GET /api/purchases — businessId={}", businessId);
 
-        List<PurchaseInvoiceResponseDTO> list =
+        List<PurchaseInvoiceResponseDTO> purchases =
                 purchaseInvoiceService.getAllPurchaseInvoices(businessId);
 
-        return ResponseEntity.ok(list);
+        return ResponseEntity.ok(purchases);
     }
 
-    /**
-     * GET PURCHASE BY ID
-     * GET /api/purchases/{id}
-     */
+    // ==========================================================
+    // GET PURCHASE BY ID
+    // ==========================================================
     @GetMapping("/{id}")
     public ResponseEntity<PurchaseInvoiceResponseDTO> getPurchaseInvoiceById(
             @PathVariable Long id) {
 
         Long businessId = businessContext.getCurrentBusinessId();
 
-        log.info("GET /api/purchases/{} — business: {}", id, businessId);
+        log.info("GET /api/purchases/{} — businessId={}", id, businessId);
 
         PurchaseInvoiceResponseDTO response =
-                purchaseInvoiceService.getPurchaseInvoiceById(id, businessId);
+                purchaseInvoiceService.getPurchaseInvoiceById(businessId, id);
 
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * UPDATE PURCHASE
-     * PUT /api/purchases/{id}
-     */
+    // ==========================================================
+    // UPDATE PURCHASE
+    // ==========================================================
     @PutMapping("/{id}")
     public ResponseEntity<PurchaseInvoiceResponseDTO> updatePurchaseInvoice(
             @PathVariable Long id,
             @Valid @RequestBody PurchaseInvoiceRequestDTO requestDTO) {
 
-        log.info("PUT /api/purchases/{} — bill: {}", id, requestDTO.getBillNumber());
+        Long businessId = businessContext.getCurrentBusinessId();
+
+        log.info("PUT /api/purchases/{} — businessId={}", id, businessId);
 
         PurchaseInvoiceResponseDTO response =
-                purchaseInvoiceService.updatePurchaseInvoice(id, requestDTO);
+                purchaseInvoiceService.updatePurchaseInvoice(businessId, id, requestDTO);
 
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * DELETE PURCHASE
-     * DELETE /api/purchases/{id}
-     */
+    // ==========================================================
+    // DELETE PURCHASE (SOFT DELETE)
+    // ==========================================================
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletePurchaseInvoice(@PathVariable Long id) {
 
-        log.info("DELETE /api/purchases/{}", id);
+        Long businessId = businessContext.getCurrentBusinessId();
 
-        purchaseInvoiceService.deletePurchaseInvoice(id);
+        log.info("DELETE /api/purchases/{} — businessId={}", id, businessId);
+
+        purchaseInvoiceService.deletePurchaseInvoice(businessId, id);
 
         return ResponseEntity.noContent().build();
     }

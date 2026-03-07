@@ -7,23 +7,43 @@ import java.util.List;
 
 public interface PurchaseInvoiceService {
 
-    // Create purchase invoice
+    // ==========================================================
+    // CREATE PURCHASE INVOICE
+    // ==========================================================
     PurchaseInvoiceResponseDTO createPurchaseInvoice(
+            Long businessId,
             PurchaseInvoiceRequestDTO requestDTO
     );
 
-    // Get purchase by ID
-    PurchaseInvoiceResponseDTO getPurchaseInvoiceById(Long id, Long businessId);
+    // ==========================================================
+    // GET PURCHASE INVOICE BY ID
+    // ==========================================================
+    PurchaseInvoiceResponseDTO getPurchaseInvoiceById(
+            Long businessId,
+            Long id
+    );
 
-    // Get all purchases for a business
-    List<PurchaseInvoiceResponseDTO> getAllPurchaseInvoices(Long businessId);
+    // ==========================================================
+    // GET ALL PURCHASE INVOICES
+    // ==========================================================
+    List<PurchaseInvoiceResponseDTO> getAllPurchaseInvoices(
+            Long businessId
+    );
 
-    // Update purchase invoice
+    // ==========================================================
+    // UPDATE PURCHASE INVOICE
+    // ==========================================================
     PurchaseInvoiceResponseDTO updatePurchaseInvoice(
+            Long businessId,
             Long id,
             PurchaseInvoiceRequestDTO requestDTO
     );
 
-    // Delete purchase invoice
-    void deletePurchaseInvoice(Long id);
+    // ==========================================================
+    // DELETE PURCHASE INVOICE (SOFT DELETE)
+    // ==========================================================
+    void deletePurchaseInvoice(
+            Long businessId,
+            Long id
+    );
 }

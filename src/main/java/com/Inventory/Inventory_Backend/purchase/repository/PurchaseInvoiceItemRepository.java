@@ -12,23 +12,33 @@ import java.util.List;
 @Repository
 public interface PurchaseInvoiceItemRepository extends JpaRepository<PurchaseInvoiceItem, Long> {
 
+    // ==========================================================
+    // FIND ITEMS BY INVOICE
+    // ==========================================================
     List<PurchaseInvoiceItem> findByPurchaseInvoiceId(Long purchaseInvoiceId);
 
-    // ✅ REMOVED deleteByPurchaseInvoiceId()
-    //    orphanRemoval on PurchaseInvoice.items handles deletion now
-    //    No more manual bulk delete needed
-
-    // ✅ Updated: Only count items whose PARENT invoice is NOT soft-deleted
+    // ==========================================================
+    // TOTAL PURCHASED QUANTITY FOR ITEM
+    // (Used for stock calculation / analytics)
+    // ==========================================================
     @Query("""
             SELECT COALESCE(SUM(pii.quantity), 0)
             FROM PurchaseInvoiceItem pii
             JOIN pii.purchaseInvoice pi
             WHERE pii.businessId = :businessId
-            AND pii.itemId = :itemId
-            AND pi.isDeleted = false
-            """)
+              AND pii.itemId = :itemId
+              AND pi.isDeleted = false
+           """)
     BigDecimal getTotalQuantityPurchasedForItem(
             @Param("businessId") Long businessId,
             @Param("itemId") Long itemId
+    );
+
+    // ==========================================================
+    // FIND ALL PURCHASE RECORDS FOR AN ITEM
+    // ==========================================================
+    List<PurchaseInvoiceItem> findByBusinessIdAndItemId(
+            Long businessId,
+            Long itemId
     );
 }
