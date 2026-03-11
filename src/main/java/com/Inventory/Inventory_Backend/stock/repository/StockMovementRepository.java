@@ -23,5 +23,13 @@ public interface StockMovementRepository
     // =========================================================
     // GET MOVEMENTS BY BUSINESS + ITEM
     // =========================================================
-    List<StockMovement> findByBusinessIdAndItemIdOrderByCreatedAtDesc(Long businessId, Long itemId);
+    List<StockMovement> findByBusinessIdAndItemIdOrderByCreatedAtDesc(
+            Long businessId,
+            Long itemId
+    );
+
+    // =========================================================
+    // CHECK ITEM DEPENDENCY (USED IN ITEM DELETE)
+    // =========================================================
+    boolean existsByItemIdAndBusinessId(Long itemId, Long businessId);
 }

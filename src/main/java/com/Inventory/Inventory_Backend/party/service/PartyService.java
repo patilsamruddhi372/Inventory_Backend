@@ -8,13 +8,21 @@ import java.util.List;
 
 public interface PartyService {
 
+    // -------- Create new party --------
     PartyResponse create(Long businessId, PartyCreateRequest request);
 
+    // -------- Get all parties for a business --------
     List<PartyResponse> getAll(Long businessId);
 
-    PartyResponse getById(Long businessId, Long id);
+    // -------- Get single party by ID --------
+    PartyResponse getById(Long businessId, Long partyId);
 
-    PartyResponse update(Long businessId, Long id, PartyUpdateRequest request);
+    // -------- Full update (PUT) --------
+    PartyResponse update(Long businessId, Long partyId, PartyUpdateRequest request);
 
-    void delete(Long businessId, Long id);
+    // -------- Partial update (PATCH) --------
+    PartyResponse patchUpdate(Long businessId, Long partyId, PartyUpdateRequest request);
+
+    // -------- Soft delete --------
+    void delete(Long businessId, Long partyId);
 }

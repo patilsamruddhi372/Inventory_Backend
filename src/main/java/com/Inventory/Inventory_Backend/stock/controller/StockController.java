@@ -4,7 +4,9 @@ import com.Inventory.Inventory_Backend.stock.dto.StockAdjustmentRequestDTO;
 import com.Inventory.Inventory_Backend.stock.dto.StockMovementResponseDTO;
 import com.Inventory.Inventory_Backend.stock.dto.StockResponseDTO;
 import com.Inventory.Inventory_Backend.stock.service.StockService;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -40,6 +42,18 @@ public class StockController {
     ) {
         return ResponseEntity.ok(
                 stockService.getAllStock(businessId)
+        );
+    }
+
+    // =========================================================
+    // GET LOW STOCK ITEMS ⭐
+    // =========================================================
+    @GetMapping("/low-stock")
+    public ResponseEntity<List<StockResponseDTO>> getLowStockItems(
+            @RequestHeader("X-Business-Id") Long businessId
+    ) {
+        return ResponseEntity.ok(
+                stockService.getLowStockItems(businessId)
         );
     }
 

@@ -20,6 +20,11 @@ public interface StockService {
     void decreaseStock(Long businessId, Long itemId, BigDecimal quantity, Long referenceId);
 
     // =========================================================
+    // DECREASE STOCK FROM QUOTATION CONVERSION
+    // =========================================================
+    void decreaseStockFromQuotation(Long businessId, Long itemId, BigDecimal quantity, Long quotationId);
+
+    // =========================================================
     // MANUAL STOCK ADJUSTMENT
     // =========================================================
     void adjustStock(Long businessId, StockAdjustmentRequestDTO request);
@@ -33,6 +38,11 @@ public interface StockService {
     // GET ALL STOCK FOR BUSINESS
     // =========================================================
     List<StockResponseDTO> getAllStock(Long businessId);
+
+    // =========================================================
+    // GET LOW STOCK ITEMS ⭐
+    // =========================================================
+    List<StockResponseDTO> getLowStockItems(Long businessId);
 
     // =========================================================
     // GET STOCK MOVEMENT HISTORY
