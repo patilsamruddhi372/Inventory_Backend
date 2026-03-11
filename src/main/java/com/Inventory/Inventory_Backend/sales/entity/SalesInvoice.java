@@ -129,6 +129,13 @@ public class SalesInvoice {
     private LocalDateTime updatedAt;
 
     // ==========================================================
+    // QUOTATION LINK (IMPORTANT FOR CONVERSION)
+    // ==========================================================
+
+    @Column(name = "quotation_id")
+    private Long quotationId;
+
+    // ==========================================================
     // RELATIONSHIP
     // ==========================================================
 

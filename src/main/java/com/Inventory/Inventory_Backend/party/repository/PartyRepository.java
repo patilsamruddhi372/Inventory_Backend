@@ -10,13 +10,37 @@ import java.util.Optional;
 
 public interface PartyRepository extends JpaRepository<Party, Long> {
 
-    // ---- existing methods ----
+    // ---------------------------
+    // Fetch Parties
+    // ---------------------------
 
     List<Party> findByBusinessIdAndIsActiveTrue(Long businessId);
 
     Optional<Party> findByIdAndBusinessIdAndIsActiveTrue(Long id, Long businessId);
 
-    // ---- NEW: required by Purchase module ----
-
     boolean existsByIdAndBusinessIdAndIsActiveTrue(Long id, Long businessId);
+
+
+    // ---------------------------
+    // Duplicate Validation (CREATE)
+    // ---------------------------
+
+    boolean existsByBusinessIdAndGstinAndIsActiveTrue(Long businessId, String gstin);
+
+    boolean existsByBusinessIdAndPhoneAndIsActiveTrue(Long businessId, String phone);
+
+    boolean existsByBusinessIdAndEmailAndIsActiveTrue(Long businessId, String email);
+
+
+    // ---------------------------
+    // Duplicate Validation (UPDATE)
+    // Ignore same record using IdNot
+    // ---------------------------
+
+    boolean existsByBusinessIdAndGstinAndIdNotAndIsActiveTrue(Long businessId, String gstin, Long id);
+
+    boolean existsByBusinessIdAndPhoneAndIdNotAndIsActiveTrue(Long businessId, String phone, Long id);
+
+    boolean existsByBusinessIdAndEmailAndIdNotAndIsActiveTrue(Long businessId, String email, Long id);
+
 }

@@ -41,4 +41,9 @@ public interface PurchaseInvoiceItemRepository extends JpaRepository<PurchaseInv
             Long businessId,
             Long itemId
     );
+
+    // ==========================================================
+    // CHECK ITEM DEPENDENCY (USED IN ITEM DELETE)
+    // ==========================================================
+    boolean existsByItemIdAndBusinessId(Long itemId, Long businessId);
 }

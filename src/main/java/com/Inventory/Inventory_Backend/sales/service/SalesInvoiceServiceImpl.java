@@ -36,9 +36,10 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
     private final SalesMapper salesMapper;
     private final StockService stockService;
 
-    // ================================================================
+    // ============================================================
     // CREATE SALES INVOICE
-    // ================================================================
+    // ============================================================
+
     @Override
     @Transactional
     public SalesInvoiceResponseDTO createSalesInvoice(Long businessId,
@@ -54,7 +55,7 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
                 .invoiceNumber(invoiceNumber)
                 .invoiceDate(request.getInvoiceDate())
                 .dueDate(request.getDueDate())
-                .paymentType(request.getPaymentType()) // ✅ Added
+                .paymentType(request.getPaymentType())
                 .amountPaid(safe(request.getAmountPaid()))
                 .build();
 
@@ -65,6 +66,7 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
         SalesInvoice saved = invoiceRepository.save(invoice);
 
         for (SalesInvoiceItem item : saved.getItems()) {
+
             stockService.decreaseStock(
                     saved.getBusinessId(),
                     item.getItemId(),
@@ -76,23 +78,24 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
         return salesMapper.toResponseDTO(saved);
     }
 
-    // ================================================================
+    // ============================================================
     // GET ALL SALES INVOICES
-    // ================================================================
+    // ============================================================
+
     @Override
     public List<SalesInvoiceResponseDTO> getAllSalesInvoices(Long businessId) {
 
-        List<SalesInvoice> invoices =
-                invoiceRepository.findByBusinessIdAndIsDeletedFalseOrderByCreatedAtDesc(businessId);
-
-        return invoices.stream()
+        return invoiceRepository
+                .findByBusinessIdAndIsDeletedFalseOrderByCreatedAtDesc(businessId)
+                .stream()
                 .map(salesMapper::toResponseDTO)
                 .toList();
     }
 
-    // ================================================================
-    // GET SALES INVOICE BY ID
-    // ================================================================
+    // ============================================================
+    // GET BY ID
+    // ============================================================
+
     @Override
     public SalesInvoiceResponseDTO getSalesInvoiceById(Long businessId, Long invoiceId) {
 
@@ -101,9 +104,10 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
         return salesMapper.toResponseDTO(invoice);
     }
 
-    // ================================================================
-    // UPDATE SALES INVOICE
-    // ================================================================
+    // ============================================================
+    // UPDATE INVOICE
+    // ============================================================
+
     @Override
     @Transactional
     public SalesInvoiceResponseDTO updateSalesInvoice(Long businessId,
@@ -121,7 +125,7 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
         invoice.setPartyId(request.getPartyId());
         invoice.setInvoiceDate(request.getInvoiceDate());
         invoice.setDueDate(request.getDueDate());
-        invoice.setPaymentType(request.getPaymentType()); // ✅ Added
+        invoice.setPaymentType(request.getPaymentType());
         invoice.setAmountPaid(safe(request.getAmountPaid()));
 
         processItems(invoice, request.getItems(), request.isInterState(), businessId);
@@ -131,6 +135,7 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
         SalesInvoice saved = invoiceRepository.save(invoice);
 
         for (SalesInvoiceItem item : saved.getItems()) {
+
             stockService.decreaseStock(
                     saved.getBusinessId(),
                     item.getItemId(),
@@ -142,9 +147,10 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
         return salesMapper.toResponseDTO(saved);
     }
 
-    // ================================================================
-    // DELETE SALES INVOICE
-    // ================================================================
+    // ============================================================
+    // DELETE INVOICE
+    // ============================================================
+
     @Override
     @Transactional
     public void deleteSalesInvoice(Long businessId, Long invoiceId) {
@@ -159,9 +165,10 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
         invoiceRepository.save(invoice);
     }
 
-    // ================================================================
+    // ============================================================
     // PROCESS ITEMS
-    // ================================================================
+    // ============================================================
+
     private void processItems(SalesInvoice invoice,
                               List<SalesInvoiceItemDTO> itemDTOs,
                               boolean interState,
@@ -169,20 +176,19 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
 
         for (SalesInvoiceItemDTO dto : itemDTOs) {
 
-            Item item = itemRepository
-                    .findById(dto.getItemId())
+            Item item = itemRepository.findById(dto.getItemId())
                     .orElseThrow(() ->
                             new ResourceNotFoundException("Item not found: " + dto.getItemId()));
 
-            StockResponseDTO stock =
-                    stockService.getStock(businessId, dto.getItemId());
+            StockResponseDTO stock = stockService.getStock(businessId, dto.getItemId());
 
             BigDecimal availableStock =
                     stock != null ? stock.getQuantity() : BigDecimal.ZERO;
 
             if (availableStock.compareTo(dto.getQuantity()) < 0) {
+
                 throw new InsufficientStockException(
-                        "Insufficient stock for item " + item.getName());
+                        "Insufficient stock for item: " + item.getName());
             }
 
             BigDecimal quantity = dto.getQuantity();
@@ -210,10 +216,14 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
                 sgst = cgst;
             }
 
-            BigDecimal total = taxableAmount.add(cgst).add(sgst).add(igst);
+            BigDecimal total = taxableAmount
+                    .add(cgst)
+                    .add(sgst)
+                    .add(igst);
 
             SalesInvoiceItem lineItem = SalesInvoiceItem.builder()
                     .businessId(businessId)
+                    .salesInvoice(invoice)   // IMPORTANT RELATION
                     .itemId(dto.getItemId())
                     .quantity(quantity)
                     .unit(dto.getUnit())
@@ -230,9 +240,10 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
         }
     }
 
-    // ================================================================
+    // ============================================================
     // RESTORE STOCK
-    // ================================================================
+    // ============================================================
+
     private void restoreStockForItems(List<SalesInvoiceItem> items) {
 
         for (SalesInvoiceItem lineItem : items) {
@@ -246,9 +257,10 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
         }
     }
 
-    // ================================================================
+    // ============================================================
     // CALCULATE TOTALS
-    // ================================================================
+    // ============================================================
+
     private void calculateInvoiceTotals(SalesInvoice invoice) {
 
         BigDecimal subtotal = BigDecimal.ZERO;
@@ -268,9 +280,13 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
 
         BigDecimal totalTax = totalCgst.add(totalSgst).add(totalIgst);
 
-        BigDecimal grandTotal = subtotal.subtract(totalDiscount).add(totalTax);
+        BigDecimal grandTotal = subtotal
+                .subtract(totalDiscount)
+                .add(totalTax);
 
-        BigDecimal balance = grandTotal.subtract(safe(invoice.getAmountPaid()));
+        BigDecimal paid = safe(invoice.getAmountPaid());
+
+        BigDecimal balance = grandTotal.subtract(paid);
 
         invoice.setSubtotal(subtotal);
         invoice.setTotalDiscount(totalDiscount);
@@ -280,12 +296,13 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
         invoice.setTotalTax(totalTax);
         invoice.setGrandTotal(grandTotal);
         invoice.setBalance(balance);
-        invoice.setStatus(determineStatus(safe(invoice.getAmountPaid()), grandTotal));
+        invoice.setStatus(determineStatus(paid, grandTotal));
     }
 
-    // ================================================================
+    // ============================================================
     // STATUS
-    // ================================================================
+    // ============================================================
+
     private String determineStatus(BigDecimal paid, BigDecimal total) {
 
         if (paid.compareTo(total) >= 0) return "paid";
@@ -295,9 +312,10 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
         return "pending";
     }
 
-    // ================================================================
+    // ============================================================
     // INVOICE NUMBER
-    // ================================================================
+    // ============================================================
+
     private String generateInvoiceNumber(Long businessId) {
 
         Optional<String> latest =
@@ -310,12 +328,14 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
         return String.format("INV-%06d", next);
     }
 
-    // ================================================================
+    // ============================================================
     // VALIDATIONS
-    // ================================================================
+    // ============================================================
+
     private void validatePartyExists(Long businessId, Long partyId) {
 
         if (!partyRepository.existsByIdAndBusinessIdAndIsActiveTrue(partyId, businessId)) {
+
             throw new ResourceNotFoundException("Customer not found: " + partyId);
         }
     }
@@ -329,6 +349,7 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
     }
 
     private BigDecimal safe(BigDecimal value) {
+
         return value != null ? value : BigDecimal.ZERO;
     }
 }
