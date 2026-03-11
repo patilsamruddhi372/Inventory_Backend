@@ -50,6 +50,7 @@ public class SalesInvoiceRequestDTO {
     @Builder.Default
     private boolean interState = false;
 
+
     // ==========================================================
     // ITEMS
     // ==========================================================
@@ -57,4 +58,6 @@ public class SalesInvoiceRequestDTO {
     @NotEmpty(message = "At least one item is required")
     @Valid
     private List<SalesInvoiceItemDTO> items;
+
+
 }
