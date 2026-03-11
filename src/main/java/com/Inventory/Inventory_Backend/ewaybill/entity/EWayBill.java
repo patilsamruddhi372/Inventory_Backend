@@ -268,4 +268,13 @@ public class EWayBill {
     public void setSalesInvoice(SalesInvoice invoice) {
         this.salesInvoice = invoice;
     }
+
+    public void setTransportMode(com.Inventory.Inventory_Backend.sales.dto.TransportMode transportMode) {
+    }
+
+    public void setTransportDocumentDate(LocalDate transportDocumentDate) {
+    }
+
+    public void setTransportDocumentNumber(String transportDocumentNumber) {
+    }
 }

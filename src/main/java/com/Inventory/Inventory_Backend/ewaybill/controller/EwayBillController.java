@@ -88,7 +88,7 @@ public class EwayBillController {
         return ResponseEntity.ok(response);
     }
 
-    //Cancle Bill
+    //Cancel Bill
     @PatchMapping("/{id}/cancel")
     public ResponseEntity<Void> cancelEWayBill(
             @RequestParam Long businessId,

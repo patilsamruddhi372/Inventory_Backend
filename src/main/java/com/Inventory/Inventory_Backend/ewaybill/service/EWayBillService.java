@@ -1,9 +1,11 @@
 package com.Inventory.Inventory_Backend.ewaybill.service;
 
 import com.Inventory.Inventory_Backend.ewaybill.dto.*;
+import com.Inventory.Inventory_Backend.sales.dto.TransportMode;
 import com.Inventory.Inventory_Backend.sales.entity.SalesInvoice;
 import org.springframework.data.domain.Page;
 
+import java.time.LocalDate;
 import java.util.List;
 
 public interface EWayBillService {
@@ -22,7 +24,6 @@ public interface EWayBillService {
 
     void cancelEWayBill(Long businessId, Long id);
 
-    void generateIfRequired(SalesInvoice saved);
-
     Page<EWayBillResponse> getAllBills(Long businessId, int page, int size);
+
 }

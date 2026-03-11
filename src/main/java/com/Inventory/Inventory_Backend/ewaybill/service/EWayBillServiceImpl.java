@@ -4,7 +4,9 @@ import com.Inventory.Inventory_Backend.ewaybill.dto.*;
 import com.Inventory.Inventory_Backend.ewaybill.entity.EWayBill;
 import com.Inventory.Inventory_Backend.ewaybill.entity.EWayBillStatus;
 import com.Inventory.Inventory_Backend.ewaybill.entity.EWayBillVehicleAudit;
-import com.Inventory.Inventory_Backend.ewaybill.entity.TransportMode;
+import com.Inventory.Inventory_Backend.party.entity.Party;
+import com.Inventory.Inventory_Backend.party.repository.PartyRepository;
+import com.Inventory.Inventory_Backend.sales.dto.TransportMode;
 import com.Inventory.Inventory_Backend.ewaybill.repository.EWayBillRepository;
 import com.Inventory.Inventory_Backend.ewaybill.repository.EWayBillVehicleAuditRepository;
 import com.Inventory.Inventory_Backend.sales.entity.SalesInvoice;
@@ -18,6 +20,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -39,19 +42,40 @@ public class EWayBillServiceImpl implements EWayBillService {
     @Autowired
     private SalesInvoiceRepository salesInvoiceRepository;
 
+    @Autowired
+    private PartyRepository partyRepository;
+
     @Override
     public EWayBillResponse createEWayBill(Long businessId, EWayBillCreateRequest request) {
-
-        EWayBill entity = new EWayBill();
 
         SalesInvoice invoice = salesInvoiceRepository
                 .findById(request.getSalesInvoiceId())
                 .orElseThrow(() -> new RuntimeException("Sales Invoice not found"));
 
+        Party buyer = partyRepository
+                .findById(invoice.getPartyId())
+                .orElseThrow(() -> new RuntimeException("Buyer not found"));
+
+        Optional<EWayBill> existing = repository.findBySalesInvoiceId(request.getSalesInvoiceId());
+
+        if(existing.isPresent()){
+            throw new RuntimeException("EWay Bill already exists for this invoice");
+        }
+
+        if(invoice.getGrandTotal().compareTo(new BigDecimal("50000")) < 0){
+            throw new IllegalArgumentException("EWay Bill not required for invoices below ₹50,000");
+        }
+
+        EWayBill entity = new EWayBill();
+
         entity.setSalesInvoice(invoice);
         entity.setSalesInvoiceId(invoice.getId());
         entity.setBusinessId(businessId);
         //entity.setSalesInvoiceId(request.getSalesInvoiceId());
+
+        entity.setInvoiceNumber(invoice.getInvoiceNumber());
+        entity.setInvoiceDate(invoice.getInvoiceDate());
+        entity.setTotalInvoiceValue(invoice.getGrandTotal());
 
         entity.setEwayBillNumber(generateEWayBillNumber());
 
@@ -73,15 +97,19 @@ public class EWayBillServiceImpl implements EWayBillService {
         entity.setCreatedAt(LocalDateTime.now());
         entity.setUpdatedAt(LocalDateTime.now());
 
-        Optional<EWayBill> existing = repository.findBySalesInvoiceId(request.getSalesInvoiceId());
+        // =============================
+        //  SELLER DETAILS (HARDCODED)
+        // =============================
+        entity.setSellerGstin("27ABCDE1234F1Z5");
+        entity.setSellerBusinessName("My Business Pvt Ltd");
+        entity.setSellerState("Maharashtra");
 
-        if(existing.isPresent()){
-            throw new RuntimeException("EWay Bill already exists for this invoice");
-        }
-
-        if(entity.getTotalInvoiceValue().compareTo(new BigDecimal("50000")) < 0){
-            throw new RuntimeException("EWay Bill not required for invoices below ₹50,000");
-        }
+        // =============================
+        // BUYER DETAILS (FROM PARTY)
+        // =============================
+        entity.setBuyerGstin(buyer.getGstin());
+        entity.setBuyerBusinessName(buyer.getName());
+        entity.setBuyerState(buyer.getState());
 
         repository.save(entity);
 
@@ -185,10 +213,22 @@ public class EWayBillServiceImpl implements EWayBillService {
 
         validateBillEditable(entity);
 
-        entity.setDistanceKm(request.getDistanceKm());
-        entity.setValidUntil(calculateValidity(request.getDistanceKm()));
-        entity.setUpdatedAt(LocalDateTime.now());
+        // Use distance from request if provided, else use existing
+        Integer distanceKm = (request.getDistanceKm() != null) ? request.getDistanceKm() : entity.getDistanceKm();
 
+        if (distanceKm == null) {
+            throw new RuntimeException("Distance must be provided for EWayBill generation");
+        }
+
+        // Optionally update entity distance
+        if (request.getDistanceKm() != null) {
+            entity.setDistanceKm(distanceKm);
+        }
+
+        // Use existing calculateValidity method
+        entity.setValidUntil(calculateValidity(distanceKm)); // <- only 1 param
+
+        entity.setUpdatedAt(LocalDateTime.now());
         repository.save(entity);
 
         return mapToResponse(entity);
@@ -204,50 +244,6 @@ public class EWayBillServiceImpl implements EWayBillService {
         entity.setUpdatedAt(LocalDateTime.now());
 
         repository.save(entity);
-    }
-
-    @Override
-    public void generateIfRequired(SalesInvoice invoice) {
-        if(invoice.getGrandTotal().compareTo(new BigDecimal("50000")) <= 0){
-            return;
-        }
-        if(repository.findBySalesInvoiceId(invoice.getId()).isPresent()){
-            return;
-        }
-
-        EWayBill bill = new EWayBill();
-
-        //set relationship
-        bill.setSalesInvoice(invoice);
-        bill.setSalesInvoiceId(invoice.getId());
-
-        //set business context
-        bill.setBusinessId(invoice.getBusinessId());
-
-        //copy invoice details
-        bill.setInvoiceNumber(invoice.getInvoiceNumber());
-        bill.setInvoiceDate(invoice.getInvoiceDate());
-        bill.setTotalInvoiceValue(invoice.getGrandTotal());
-
-        //generate unique eway bill number
-        bill.setEwayBillNumber(generateEWayBillNumber());
-
-        //set status and validity
-        bill.setStatus(EWayBillStatus.ACTIVE);
-        bill.setActive(true);
-        bill.setValidFrom(LocalDateTime.now());
-
-
-        Integer distance = bill.getDistanceKm();
-
-        bill.setValidFrom(LocalDateTime.now());
-        bill.setValidUntil(calculateValidity(distance));
-
-        //set timestamps
-        bill.setUpdatedAt(LocalDateTime.now());
-        bill.setCreatedAt(LocalDateTime.now());
-
-        repository.save(bill);
     }
 
     @Override

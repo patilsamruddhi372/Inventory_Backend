@@ -35,7 +35,6 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
     private final PartyRepository partyRepository;
     private final SalesMapper salesMapper;
     private final StockService stockService;
-    private final com.Inventory.Inventory_Backend.ewaybill.service.EWayBillService eWayBillService;
 
     // ============================================================
     // CREATE SALES INVOICE
@@ -76,16 +75,15 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
             );
         }
 
-        // ================================================================
-        // AUTO GENERATE EWAY BILL IF REQUIRED
-        // ================================================================
-        try {
-            eWayBillService.generateIfRequired(saved);
-        } catch (Exception e) {
-            log.error("Failed to auto generate EWayBill for invoice {}", saved.getId(), e);
-        }
+        SalesInvoiceResponseDTO response = salesMapper.toResponseDTO(saved);
 
-        return salesMapper.toResponseDTO(saved);
+        // check if eway bill required
+        boolean eWayBillRequired =
+                saved.getGrandTotal().compareTo(new BigDecimal("50000")) > 0;
+
+        response.setEWayBillRequired(eWayBillRequired);
+
+        return response;
     }
 
     // ============================================================
