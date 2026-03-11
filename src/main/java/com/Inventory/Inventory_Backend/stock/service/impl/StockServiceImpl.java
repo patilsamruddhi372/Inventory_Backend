@@ -8,13 +8,16 @@ import com.Inventory.Inventory_Backend.stock.entity.StockMovement;
 import com.Inventory.Inventory_Backend.stock.repository.StockMovementRepository;
 import com.Inventory.Inventory_Backend.stock.repository.StockRepository;
 import com.Inventory.Inventory_Backend.stock.service.StockService;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -39,14 +42,17 @@ public class StockServiceImpl implements StockService {
             stock = Stock.builder()
                     .businessId(businessId)
                     .itemId(itemId)
-                    .quantity(quantity)
+                    .quantity(quantity != null ? quantity : BigDecimal.ZERO)
                     .createdAt(LocalDateTime.now())
                     .updatedAt(LocalDateTime.now())
                     .build();
 
         } else {
 
-            stock.setQuantity(stock.getQuantity().add(quantity));
+            BigDecimal currentQty = Optional.ofNullable(stock.getQuantity())
+                    .orElse(BigDecimal.ZERO);
+
+            stock.setQuantity(currentQty.add(quantity));
             stock.setUpdatedAt(LocalDateTime.now());
         }
 
@@ -77,11 +83,14 @@ public class StockServiceImpl implements StockService {
                 .orElseThrow(() ->
                         new RuntimeException("Stock not found for item: " + itemId));
 
-        if (stock.getQuantity().compareTo(quantity) < 0) {
+        BigDecimal currentQty = Optional.ofNullable(stock.getQuantity())
+                .orElse(BigDecimal.ZERO);
+
+        if (currentQty.compareTo(quantity) < 0) {
             throw new RuntimeException("Insufficient stock for item: " + itemId);
         }
 
-        stock.setQuantity(stock.getQuantity().subtract(quantity));
+        stock.setQuantity(currentQty.subtract(quantity));
         stock.setUpdatedAt(LocalDateTime.now());
 
         stockRepository.save(stock);
@@ -100,6 +109,19 @@ public class StockServiceImpl implements StockService {
     }
 
     // =========================================================
+    // DECREASE STOCK FROM QUOTATION CONVERSION
+    // =========================================================
+    @Override
+    @Transactional
+    public void decreaseStockFromQuotation(Long businessId,
+                                           Long itemId,
+                                           BigDecimal quantity,
+                                           Long quotationId) {
+
+        decreaseStock(businessId, itemId, quantity, quotationId);
+    }
+
+    // =========================================================
     // STOCK ADJUSTMENT
     // =========================================================
     @Override
@@ -111,8 +133,14 @@ public class StockServiceImpl implements StockService {
                 .orElseThrow(() ->
                         new RuntimeException("Stock not found for item: " + request.getItemId()));
 
-        BigDecimal currentQty = stock.getQuantity();
+        BigDecimal currentQty = Optional.ofNullable(stock.getQuantity())
+                .orElse(BigDecimal.ZERO);
+
         BigDecimal newQty = request.getNewQuantity();
+
+        if (newQty == null) {
+            throw new RuntimeException("New quantity is required for stock adjustment");
+        }
 
         BigDecimal adjustment = newQty.subtract(currentQty);
 
@@ -161,6 +189,23 @@ public class StockServiceImpl implements StockService {
 
         return stockRepository
                 .findByBusinessId(businessId)
+                .stream()
+                .map(stock -> StockResponseDTO.builder()
+                        .businessId(stock.getBusinessId())
+                        .itemId(stock.getItemId())
+                        .quantity(stock.getQuantity())
+                        .build())
+                .toList();
+    }
+
+    // =========================================================
+    // GET LOW STOCK ITEMS
+    // =========================================================
+    @Override
+    public List<StockResponseDTO> getLowStockItems(Long businessId) {
+
+        return stockRepository
+                .findLowStockItems(businessId)
                 .stream()
                 .map(stock -> StockResponseDTO.builder()
                         .businessId(stock.getBusinessId())

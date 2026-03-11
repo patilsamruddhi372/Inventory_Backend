@@ -10,7 +10,18 @@ import java.util.List;
 public interface SalesInvoiceItemRepository
         extends JpaRepository<SalesInvoiceItem, Long> {
 
+    // =========================================================
+    // FIND ITEMS BY SALES INVOICE
+    // =========================================================
     List<SalesInvoiceItem> findBySalesInvoiceId(Long salesInvoiceId);
 
+    // =========================================================
+    // DELETE ITEMS WHEN INVOICE IS DELETED
+    // =========================================================
     void deleteBySalesInvoiceId(Long salesInvoiceId);
+
+    // =========================================================
+    // CHECK ITEM DEPENDENCY (USED IN ITEM DELETE)
+    // =========================================================
+    boolean existsByItemIdAndBusinessId(Long itemId, Long businessId);
 }

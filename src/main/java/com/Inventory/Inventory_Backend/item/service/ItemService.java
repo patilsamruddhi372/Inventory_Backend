@@ -1,15 +1,28 @@
 package com.Inventory.Inventory_Backend.item.service;
 
+import com.Inventory.Inventory_Backend.item.entity.Item;
 import com.Inventory.Inventory_Backend.item.dto.ItemMapper;
 import com.Inventory.Inventory_Backend.item.dto.ItemRequestDTO;
 import com.Inventory.Inventory_Backend.item.dto.ItemResponseDTO;
-import com.Inventory.Inventory_Backend.item.entity.Item;
 import com.Inventory.Inventory_Backend.item.repository.ItemRepository;
+
+import com.Inventory.Inventory_Backend.stock.entity.Stock;
+import com.Inventory.Inventory_Backend.stock.entity.StockMovement;
+import com.Inventory.Inventory_Backend.stock.repository.StockRepository;
+import com.Inventory.Inventory_Backend.stock.repository.StockMovementRepository;
+
+import com.Inventory.Inventory_Backend.purchase.repository.PurchaseInvoiceItemRepository;
+import com.Inventory.Inventory_Backend.sales.repository.SalesInvoiceItemRepository;
+import com.Inventory.Inventory_Backend.quotation.repository.QuotationItemRepository;
+
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 
@@ -21,27 +34,33 @@ public class ItemService {
     private final ItemRepository repository;
     private final ItemMapper mapper;
 
+    private final StockRepository stockRepository;
+    private final StockMovementRepository stockMovementRepository;
+
+    private final PurchaseInvoiceItemRepository purchaseItemRepository;
+    private final SalesInvoiceItemRepository salesItemRepository;
+    private final QuotationItemRepository quotationItemRepository;
+
     // TODO replace with BusinessContext later
     private Long getCurrentBusinessId() {
         return 1L;
     }
 
-    // ─────────────────────────────────────────────
+    // =========================
     // GET ALL ITEMS
-    // ─────────────────────────────────────────────
+    // =========================
     @Transactional(readOnly = true)
     public List<ItemResponseDTO> getAll() {
 
-        List<Item> items = repository.findByBusinessIdAndIsActiveTrue(
-                getCurrentBusinessId()
-        );
+        List<Item> items =
+                repository.findByBusinessIdAndIsActiveTrue(getCurrentBusinessId());
 
         return mapper.toResponseList(items);
     }
 
-    // ─────────────────────────────────────────────
+    // =========================
     // GET ITEM BY ID
-    // ─────────────────────────────────────────────
+    // =========================
     @Transactional(readOnly = true)
     public ItemResponseDTO getById(Long id) {
 
@@ -50,23 +69,67 @@ public class ItemService {
         return mapper.toResponse(item);
     }
 
-    // ─────────────────────────────────────────────
+    // =========================
     // CREATE ITEM
-    // ─────────────────────────────────────────────
+    // =========================
     public ItemResponseDTO create(ItemRequestDTO dto) {
 
+        Long businessId = getCurrentBusinessId();
+
+        // 🔴 Prevent duplicate item names
+        if (repository.existsByNameIgnoreCaseAndBusinessIdAndIsActiveTrue(
+                dto.getName().trim(), businessId)) {
+
+            throw new RuntimeException(
+                    "Item already exists with name: " + dto.getName()
+            );
+        }
+
         Item entity = mapper.toEntity(dto);
+        entity.setBusinessId(businessId);
+        entity.setName(dto.getName().trim());
 
-        entity.setBusinessId(getCurrentBusinessId());
+        Item savedItem = repository.save(entity);
 
-        Item saved = repository.save(entity);
+        // Opening stock
+        BigDecimal openingStock =
+                dto.getOpeningStock() != null
+                        ? dto.getOpeningStock()
+                        : BigDecimal.ZERO;
 
-        return mapper.toResponse(saved);
+        // 1️⃣ Create stock snapshot
+        Stock stock = new Stock();
+
+        stock.setBusinessId(businessId);
+        stock.setItemId(savedItem.getId());
+        stock.setQuantity(openingStock);
+        stock.setCreatedAt(LocalDateTime.now());
+        stock.setUpdatedAt(LocalDateTime.now());
+
+        stockRepository.save(stock);
+
+        // 2️⃣ Create stock movement
+        if (openingStock.compareTo(BigDecimal.ZERO) > 0) {
+
+            StockMovement movement = new StockMovement();
+
+            movement.setBusinessId(businessId);
+            movement.setItemId(savedItem.getId());
+            movement.setQuantity(openingStock);
+            movement.setMovementType("OPENING_STOCK");
+            movement.setReferenceType("ITEM");
+            movement.setReferenceId(savedItem.getId());
+            movement.setCreatedAt(LocalDateTime.now());
+
+            stockMovementRepository.save(movement);
+        }
+
+        return mapper.toResponse(savedItem);
     }
 
-    // ─────────────────────────────────────────────
+    // =========================
     // UPDATE ITEM
-    // ─────────────────────────────────────────────
+    // =========================
     public ItemResponseDTO update(Long id, ItemRequestDTO dto) {
 
         Item existing = findItemOrThrow(id);
@@ -78,44 +141,70 @@ public class ItemService {
         return mapper.toResponse(saved);
     }
 
-    // ─────────────────────────────────────────────
-    // DELETE ITEM (SOFT DELETE)
-    // ─────────────────────────────────────────────
+    // =========================
+    // DELETE ITEM
+    // =========================
     public void delete(Long id) {
 
         Item item = findItemOrThrow(id);
 
+        Long businessId = getCurrentBusinessId();
+
+        if (stockMovementRepository.existsByItemIdAndBusinessId(id, businessId)) {
+            throw new RuntimeException(
+                    "Item cannot be deleted because stock movements exist"
+            );
+        }
+
+        if (purchaseItemRepository.existsByItemIdAndBusinessId(id, businessId)) {
+            throw new RuntimeException(
+                    "Item cannot be deleted because it is used in purchase invoices"
+            );
+        }
+
+        if (salesItemRepository.existsByItemIdAndBusinessId(id, businessId)) {
+            throw new RuntimeException(
+                    "Item cannot be deleted because it is used in sales invoices"
+            );
+        }
+
+        if (quotationItemRepository.existsByItemIdAndBusinessId(id, businessId)) {
+            throw new RuntimeException(
+                    "Item cannot be deleted because it is used in quotations"
+            );
+        }
+
+        // Soft delete
         item.setIsActive(false);
 
         repository.save(item);
     }
 
-    // ─────────────────────────────────────────────
+    // =========================
     // TOGGLE FAVORITE
-    // ─────────────────────────────────────────────
+    // =========================
     public void toggleFavorite(Long id) {
 
-        int updated = repository.toggleFavorite(
-                id,
-                getCurrentBusinessId()
-        );
+        int updated =
+                repository.toggleFavorite(id, getCurrentBusinessId());
 
         if (updated == 0) {
             throw new EntityNotFoundException("Item not found: " + id);
         }
     }
 
-    // ─────────────────────────────────────────────
+    // =========================
     // BULK DELETE
-    // ─────────────────────────────────────────────
+    // =========================
     public void bulkDelete(Set<Long> ids) {
 
         Long businessId = getCurrentBusinessId();
 
-        List<Item> items = repository.findAllById(ids)
-                .stream()
-                .filter(i -> businessId.equals(i.getBusinessId()))
-                .toList();
+        List<Item> items =
+                repository.findAllById(ids)
+                        .stream()
+                        .filter(i -> businessId.equals(i.getBusinessId()))
+                        .toList();
 
         if (items.isEmpty()) {
             throw new EntityNotFoundException("No items found for given IDs");
@@ -126,9 +215,9 @@ public class ItemService {
         repository.saveAll(items);
     }
 
-    // ─────────────────────────────────────────────
+    // =========================
     // HELPER
-    // ─────────────────────────────────────────────
+    // =========================
     private Item findItemOrThrow(Long id) {
 
         return repository

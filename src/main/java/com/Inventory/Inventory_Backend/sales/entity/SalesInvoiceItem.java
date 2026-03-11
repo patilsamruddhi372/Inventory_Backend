@@ -5,7 +5,6 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
-import java.util.UUID;
 
 @Entity
 @Table(
@@ -78,7 +77,7 @@ public class SalesInvoiceItem {
     private BigDecimal rate;
 
     @Builder.Default
-    @Column(precision = 15, scale = 2, nullable = false)
+    @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal discount = BigDecimal.ZERO;
 
     // ==========================================================
@@ -86,19 +85,19 @@ public class SalesInvoiceItem {
     // ==========================================================
 
     @Builder.Default
-    @Column(name = "gst_rate", precision = 5, scale = 2, nullable = false)
+    @Column(name = "gst_rate", nullable = false, precision = 5, scale = 2)
     private BigDecimal gstRate = BigDecimal.ZERO;
 
     @Builder.Default
-    @Column(name = "cgst_amount", precision = 15, scale = 2, nullable = false)
+    @Column(name = "cgst_amount", nullable = false, precision = 15, scale = 2)
     private BigDecimal cgstAmount = BigDecimal.ZERO;
 
     @Builder.Default
-    @Column(name = "sgst_amount", precision = 15, scale = 2, nullable = false)
+    @Column(name = "sgst_amount", nullable = false, precision = 15, scale = 2)
     private BigDecimal sgstAmount = BigDecimal.ZERO;
 
     @Builder.Default
-    @Column(name = "igst_amount", precision = 15, scale = 2, nullable = false)
+    @Column(name = "igst_amount", nullable = false, precision = 15, scale = 2)
     private BigDecimal igstAmount = BigDecimal.ZERO;
 
     // ==========================================================

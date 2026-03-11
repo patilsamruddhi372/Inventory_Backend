@@ -22,9 +22,12 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
     Optional<Item> findByIdAndBusinessId(Long id, Long businessId);
 
     // =========================
-    // CHECK ITEM EXISTS (USED BY PURCHASE / SALES)
+    // CHECK ITEM EXISTS
     // =========================
     boolean existsByIdAndBusinessIdAndIsActiveTrue(Long id, Long businessId);
+
+    // ⭐ ADD THIS METHOD
+    boolean existsByNameIgnoreCaseAndBusinessIdAndIsActiveTrue(String name, Long businessId);
 
     // =========================
     // TOGGLE FAVORITE
