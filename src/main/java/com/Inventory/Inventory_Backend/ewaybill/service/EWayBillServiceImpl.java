@@ -6,7 +6,6 @@ import com.Inventory.Inventory_Backend.ewaybill.entity.EWayBillStatus;
 import com.Inventory.Inventory_Backend.ewaybill.entity.EWayBillVehicleAudit;
 import com.Inventory.Inventory_Backend.party.entity.Party;
 import com.Inventory.Inventory_Backend.party.repository.PartyRepository;
-import com.Inventory.Inventory_Backend.sales.dto.TransportMode;
 import com.Inventory.Inventory_Backend.ewaybill.repository.EWayBillRepository;
 import com.Inventory.Inventory_Backend.ewaybill.repository.EWayBillVehicleAuditRepository;
 import com.Inventory.Inventory_Backend.sales.entity.SalesInvoice;
@@ -20,7 +19,6 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.Duration;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -30,7 +28,6 @@ import java.util.stream.Collectors;
 public class EWayBillServiceImpl implements EWayBillService {
 
     private final EWayBillRepository repository;
-    private EWayBill entity;
 
     public EWayBillServiceImpl(EWayBillRepository repository) {
         this.repository = repository;
@@ -58,11 +55,11 @@ public class EWayBillServiceImpl implements EWayBillService {
 
         Optional<EWayBill> existing = repository.findBySalesInvoiceId(request.getSalesInvoiceId());
 
-        if(existing.isPresent()){
+        if (existing.isPresent()) {
             throw new RuntimeException("EWay Bill already exists for this invoice");
         }
 
-        if(invoice.getGrandTotal().compareTo(new BigDecimal("50000")) < 0){
+        if (invoice.getGrandTotal().compareTo(new BigDecimal("50000")) < 0) {
             throw new IllegalArgumentException("EWay Bill not required for invoices below ₹50,000");
         }
 
@@ -71,7 +68,7 @@ public class EWayBillServiceImpl implements EWayBillService {
         entity.setSalesInvoice(invoice);
         entity.setSalesInvoiceId(invoice.getId());
         entity.setBusinessId(businessId);
-        //entity.setSalesInvoiceId(request.getSalesInvoiceId());
+        // entity.setSalesInvoiceId(request.getSalesInvoiceId());
 
         entity.setInvoiceNumber(invoice.getInvoiceNumber());
         entity.setInvoiceDate(invoice.getInvoiceDate());
@@ -98,7 +95,7 @@ public class EWayBillServiceImpl implements EWayBillService {
         entity.setUpdatedAt(LocalDateTime.now());
 
         // =============================
-        //  SELLER DETAILS (HARDCODED)
+        // SELLER DETAILS (HARDCODED)
         // =============================
         entity.setSellerGstin("27ABCDE1234F1Z5");
         entity.setSellerBusinessName("My Business Pvt Ltd");
@@ -184,10 +181,10 @@ public class EWayBillServiceImpl implements EWayBillService {
 
         validateBillEditable(entity);
 
-        //Store old vehicle number BEFORE updating
+        // Store old vehicle number BEFORE updating
         String oldVehicle = entity.getVehicleNumber();
 
-        //Update vehicle details
+        // Update vehicle details
         entity.setVehicleNumber(request.getVehicleNumber());
         entity.setTransportMode(request.getTransportMode());
         entity.setUpdatedAt(LocalDateTime.now());
@@ -256,10 +253,10 @@ public class EWayBillServiceImpl implements EWayBillService {
     }
 
     private LocalDateTime calculateValidity(Integer distanceKm) {
-        if(distanceKm == null || distanceKm <= 0){
+        if (distanceKm == null || distanceKm <= 0) {
             throw new IllegalArgumentException("Distance must be provided for EWayBill generation");
         }
-        int days = (int) Math.ceil(distanceKm/100.0);
+        int days = (int) Math.ceil(distanceKm / 100.0);
         return LocalDateTime.now().plusDays(days);
     }
 
@@ -270,9 +267,9 @@ public class EWayBillServiceImpl implements EWayBillService {
 
         int nextNumber = 1;
 
-        if(lastBill.isPresent()){
+        if (lastBill.isPresent()) {
             String lastNumber = lastBill.get().getEwayBillNumber();
-            if(lastNumber != null && lastNumber.contains("-")){
+            if (lastNumber != null && lastNumber.contains("-")) {
                 String[] parts = lastNumber.split("-");
                 int lastSequence = Integer.parseInt(parts[2]);
                 nextNumber = lastSequence + 1;
@@ -282,8 +279,7 @@ public class EWayBillServiceImpl implements EWayBillService {
         return String.format("EWB-%d-%06d", year, nextNumber);
     }
 
-
-    private EWayBillResponse mapToResponse(EWayBill entity){
+    private EWayBillResponse mapToResponse(EWayBill entity) {
         EWayBillResponse response = new EWayBillResponse();
 
         response.setId(entity.getId());
@@ -305,7 +301,7 @@ public class EWayBillServiceImpl implements EWayBillService {
 
         response.setStatus(entity.getStatus());
 
-        if(entity.getValidUntil() != null){
+        if (entity.getValidUntil() != null) {
             long daysRemaining = Duration.between(LocalDateTime.now(), entity.getValidUntil()).toDays();
             response.setDaysRemaining(daysRemaining);
         }
@@ -315,15 +311,14 @@ public class EWayBillServiceImpl implements EWayBillService {
         return response;
     }
 
-    private void validateBillEditable(EWayBill bill){
-        if(bill.getStatus() == EWayBillStatus.EXPIRED){
+    private void validateBillEditable(EWayBill bill) {
+        if (bill.getStatus() == EWayBillStatus.EXPIRED) {
             throw new RuntimeException("EWay Bill is expired and cannot be edited");
         }
 
-        if(bill.getStatus() == EWayBillStatus.CANCELLED){
+        if (bill.getStatus() == EWayBillStatus.CANCELLED) {
             throw new RuntimeException("EWay Bill is cancelled and cannot be edited");
         }
-        
 
     }
 }
