@@ -75,7 +75,15 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
             );
         }
 
-        return salesMapper.toResponseDTO(saved);
+        SalesInvoiceResponseDTO response = salesMapper.toResponseDTO(saved);
+
+        // check if eway bill required
+        boolean eWayBillRequired =
+                saved.getGrandTotal().compareTo(new BigDecimal("50000")) > 0;
+
+        response.setEWayBillRequired(eWayBillRequired);
+
+        return response;
     }
 
     // ============================================================
