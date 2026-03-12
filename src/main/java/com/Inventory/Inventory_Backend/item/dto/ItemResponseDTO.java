@@ -41,9 +41,8 @@ public class ItemResponseDTO {
     // INVENTORY
     // =========================
 
-    private BigDecimal openingStock;   // initial stock
-    private BigDecimal currentStock;   // fetched from stock table
-
+    private BigDecimal openingStock;
+    private BigDecimal currentStock;
     private Integer lowStockAlert;
 
     // =========================
@@ -54,6 +53,15 @@ public class ItemResponseDTO {
     private String hsn;
 
     // =========================
+    // DISCOUNTS (added)
+    // =========================
+
+    private BigDecimal saleDiscountPercent;
+    private BigDecimal saleDiscountAmount;
+    private BigDecimal purchaseDiscountPercent;
+    private BigDecimal purchaseDiscountAmount;
+
+    // =========================
     // FLAGS
     // =========================
 
@@ -61,10 +69,10 @@ public class ItemResponseDTO {
     private Boolean isFavorite;
 
     // =========================
-    // OPTIONAL COMPUTED (service layer)
+    // COMPUTED
     // =========================
 
-    private String stockStatus;   // inStock | lowStock | outOfStock
+    private String stockStatus;
 
     // =========================
     // TIMESTAMPS

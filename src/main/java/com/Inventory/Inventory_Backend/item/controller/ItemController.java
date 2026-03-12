@@ -70,38 +70,36 @@ public class ItemController {
     // DELETE ITEM (SOFT DELETE)
     // =========================
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteItem(@PathVariable Long id) {
-
+    public ResponseEntity<java.util.Map<String, String>> deleteItem(@PathVariable Long id) {
         itemService.delete(id);
 
-        return ResponseEntity.ok("Item deleted successfully");
+        // This creates valid JSON: {"message": "Item deleted successfully"}
+        return ResponseEntity.ok(java.util.Map.of("message", "Item deleted successfully"));
     }
 
     // =========================
     // TOGGLE FAVORITE
     // =========================
     @PatchMapping("/{id}/favorite")
-    public ResponseEntity<String> toggleFavorite(@PathVariable Long id) {
+    public ResponseEntity<Void> toggleFavorite(@PathVariable Long id) {
 
         itemService.toggleFavorite(id);
 
-        return ResponseEntity.ok("Item favorite status updated");
+        return ResponseEntity.noContent().build();
     }
 
     // =========================
     // BULK DELETE
     // =========================
     @DeleteMapping("/bulk")
-    public ResponseEntity<String> bulkDelete(@RequestBody Set<Long> ids) {
+    public ResponseEntity<Void> bulkDelete(@RequestBody Set<Long> ids) {
 
         if (ids == null || ids.isEmpty()) {
-            return ResponseEntity
-                    .badRequest()
-                    .body("No item IDs provided");
+            return ResponseEntity.badRequest().build();
         }
 
         itemService.bulkDelete(ids);
 
-        return ResponseEntity.ok("Items deleted successfully");
+        return ResponseEntity.noContent().build();
     }
 }
