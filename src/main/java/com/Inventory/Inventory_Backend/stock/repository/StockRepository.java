@@ -3,7 +3,6 @@ package com.Inventory.Inventory_Backend.stock.repository;
 import com.Inventory.Inventory_Backend.stock.entity.Stock;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -33,5 +32,5 @@ public interface StockRepository extends JpaRepository<Stock, Long> {
         AND i.lowStockAlert > 0
         AND s.quantity <= i.lowStockAlert
     """)
-    List<Stock> findLowStockItems(@Param("businessId") Long businessId);
+    List<Stock> findLowStockItems(Long businessId);
 }

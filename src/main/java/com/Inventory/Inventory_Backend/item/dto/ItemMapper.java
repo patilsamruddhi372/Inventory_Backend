@@ -27,13 +27,18 @@ public class ItemMapper {
                 .purchasePrice(defaultIfNull(dto.getPurchasePrice(), BigDecimal.ZERO))
                 .mrpPrice(defaultIfNull(dto.getMrpPrice(), BigDecimal.ZERO))
 
-                // opening stock only
                 .openingStock(defaultIfNull(dto.getOpeningStock(), BigDecimal.ZERO))
 
                 .lowStockAlert(defaultIfNull(dto.getLowStockAlert(), 0))
 
                 .gstRate(defaultIfNull(dto.getGstRate(), BigDecimal.ZERO))
                 .hsn(dto.getHsn())
+
+                // ── DISCOUNTS (added) ──
+                .saleDiscountPercent(defaultIfNull(dto.getSaleDiscountPercent(), BigDecimal.ZERO))
+                .saleDiscountAmount(defaultIfNull(dto.getSaleDiscountAmount(), BigDecimal.ZERO))
+                .purchaseDiscountPercent(defaultIfNull(dto.getPurchaseDiscountPercent(), BigDecimal.ZERO))
+                .purchaseDiscountAmount(defaultIfNull(dto.getPurchaseDiscountAmount(), BigDecimal.ZERO))
 
                 .isActive(defaultIfNull(dto.getIsActive(), true))
                 .isFavorite(defaultIfNull(dto.getIsFavorite(), false))
@@ -64,6 +69,12 @@ public class ItemMapper {
         if (dto.getGstRate() != null) entity.setGstRate(dto.getGstRate());
         if (dto.getHsn() != null) entity.setHsn(dto.getHsn());
 
+        // ── DISCOUNTS (added) ──
+        if (dto.getSaleDiscountPercent() != null) entity.setSaleDiscountPercent(dto.getSaleDiscountPercent());
+        if (dto.getSaleDiscountAmount() != null) entity.setSaleDiscountAmount(dto.getSaleDiscountAmount());
+        if (dto.getPurchaseDiscountPercent() != null) entity.setPurchaseDiscountPercent(dto.getPurchaseDiscountPercent());
+        if (dto.getPurchaseDiscountAmount() != null) entity.setPurchaseDiscountAmount(dto.getPurchaseDiscountAmount());
+
         if (dto.getIsActive() != null) entity.setIsActive(dto.getIsActive());
         if (dto.getIsFavorite() != null) entity.setIsFavorite(dto.getIsFavorite());
     }
@@ -92,6 +103,12 @@ public class ItemMapper {
 
                 .gstRate(defaultIfNull(entity.getGstRate(), BigDecimal.ZERO))
                 .hsn(entity.getHsn())
+
+                // ── DISCOUNTS (added) ──
+                .saleDiscountPercent(defaultIfNull(entity.getSaleDiscountPercent(), BigDecimal.ZERO))
+                .saleDiscountAmount(defaultIfNull(entity.getSaleDiscountAmount(), BigDecimal.ZERO))
+                .purchaseDiscountPercent(defaultIfNull(entity.getPurchaseDiscountPercent(), BigDecimal.ZERO))
+                .purchaseDiscountAmount(defaultIfNull(entity.getPurchaseDiscountAmount(), BigDecimal.ZERO))
 
                 .isActive(defaultIfNull(entity.getIsActive(), true))
                 .isFavorite(defaultIfNull(entity.getIsFavorite(), false))

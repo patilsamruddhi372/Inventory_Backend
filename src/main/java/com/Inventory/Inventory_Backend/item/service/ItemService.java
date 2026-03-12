@@ -142,39 +142,15 @@ public class ItemService {
     }
 
     // =========================
-    // DELETE ITEM
+    // DELETE ITEM (SOFT DELETE)
     // =========================
     public void delete(Long id) {
 
         Item item = findItemOrThrow(id);
 
-        Long businessId = getCurrentBusinessId();
-
-        if (stockMovementRepository.existsByItemIdAndBusinessId(id, businessId)) {
-            throw new RuntimeException(
-                    "Item cannot be deleted because stock movements exist"
-            );
-        }
-
-        if (purchaseItemRepository.existsByItemIdAndBusinessId(id, businessId)) {
-            throw new RuntimeException(
-                    "Item cannot be deleted because it is used in purchase invoices"
-            );
-        }
-
-        if (salesItemRepository.existsByItemIdAndBusinessId(id, businessId)) {
-            throw new RuntimeException(
-                    "Item cannot be deleted because it is used in sales invoices"
-            );
-        }
-
-        if (quotationItemRepository.existsByItemIdAndBusinessId(id, businessId)) {
-            throw new RuntimeException(
-                    "Item cannot be deleted because it is used in quotations"
-            );
-        }
-
-        // Soft delete
+        // Soft delete (Hide the item from the frontend)
+        // Since it is just hidden and not permanently deleted, it is safe
+        // to do this even if there are past stock movements or sales invoices!
         item.setIsActive(false);
 
         repository.save(item);
