@@ -76,13 +76,19 @@ public class ItemService {
 
         Long businessId = getCurrentBusinessId();
 
-        // 🔴 Prevent duplicate item names
+        //  Prevent duplicate item names
         if (repository.existsByNameIgnoreCaseAndBusinessIdAndIsActiveTrue(
                 dto.getName().trim(), businessId)) {
 
             throw new RuntimeException(
                     "Item already exists with name: " + dto.getName()
             );
+        }
+
+        if ("service".equalsIgnoreCase(dto.getType())
+                && dto.getOpeningStock() != null
+                && dto.getOpeningStock().compareTo(BigDecimal.ZERO) > 0) {
+            throw new RuntimeException("Opening stock is not applicable for service items");
         }
 
         Item entity = mapper.toEntity(dto);
@@ -97,32 +103,36 @@ public class ItemService {
                         ? dto.getOpeningStock()
                         : BigDecimal.ZERO;
 
-        // 1️⃣ Create stock snapshot
-        Stock stock = new Stock();
+        if("goods".equalsIgnoreCase(savedItem.getType())){
+            // 1️⃣ Create stock snapshot
+            Stock stock = new Stock();
 
-        stock.setBusinessId(businessId);
-        stock.setItemId(savedItem.getId());
-        stock.setQuantity(openingStock);
-        stock.setCreatedAt(LocalDateTime.now());
-        stock.setUpdatedAt(LocalDateTime.now());
+            stock.setBusinessId(businessId);
+            stock.setItemId(savedItem.getId());
+            stock.setQuantity(openingStock);
+            stock.setCreatedAt(LocalDateTime.now());
+            stock.setUpdatedAt(LocalDateTime.now());
 
-        stockRepository.save(stock);
+            stockRepository.save(stock);
 
-        // 2️⃣ Create stock movement
-        if (openingStock.compareTo(BigDecimal.ZERO) > 0) {
+            // 2️⃣ Create stock movement
+            if (openingStock.compareTo(BigDecimal.ZERO) > 0) {
 
-            StockMovement movement = new StockMovement();
+                StockMovement movement = new StockMovement();
 
-            movement.setBusinessId(businessId);
-            movement.setItemId(savedItem.getId());
-            movement.setQuantity(openingStock);
-            movement.setMovementType("OPENING_STOCK");
-            movement.setReferenceType("ITEM");
-            movement.setReferenceId(savedItem.getId());
-            movement.setCreatedAt(LocalDateTime.now());
+                movement.setBusinessId(businessId);
+                movement.setItemId(savedItem.getId());
+                movement.setQuantity(openingStock);
+                movement.setMovementType("OPENING_STOCK");
+                movement.setReferenceType("ITEM");
+                movement.setReferenceId(savedItem.getId());
+                movement.setCreatedAt(LocalDateTime.now());
 
-            stockMovementRepository.save(movement);
+                stockMovementRepository.save(movement);
+            }
+
         }
+
 
         return mapper.toResponse(savedItem);
     }

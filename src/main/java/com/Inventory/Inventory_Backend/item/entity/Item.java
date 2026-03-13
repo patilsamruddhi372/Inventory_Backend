@@ -2,6 +2,8 @@ package com.Inventory.Inventory_Backend.item.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -41,6 +43,10 @@ public class Item {
     private String sku;
 
     private String unit;
+
+    @Column(length = 500)
+    private String description;
+
 
     // =========================
     // INVENTORY INFO
@@ -96,7 +102,10 @@ public class Item {
     // AUDIT FIELDS
     // =========================
 
+    @CreationTimestamp
+    @Column(updatable = false)
     private LocalDateTime createdAt;
 
+    @UpdateTimestamp
     private LocalDateTime updatedAt;
 }

@@ -28,6 +28,7 @@ public class ItemResponseDTO {
     private String category;
     private String brand;
     private String unit;
+    private String description;
 
     // =========================
     // PRICES

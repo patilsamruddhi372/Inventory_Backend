@@ -43,6 +43,9 @@ public class ItemRequestDTO {
     @Size(max = 30, message = "Unit max 30 characters")
     private String unit;
 
+    @Size(max = 500, message = "Description max 500 characters")
+    private String description;
+
     // ===============================
     // PRICES
     // ===============================
