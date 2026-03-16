@@ -31,6 +31,12 @@ public class QuotationResponseDTO {
 
     private BigDecimal totalAmount;
 
+    private String paymentTerms;
+
+    private String deliveryTime;
+
+    private String notes;
+
     private String status;
 
     private List<QuotationItemDTO> items;

@@ -110,6 +110,22 @@ public class GlobalExceptionHandler {
     }
 
     // ==========================================================
+    // BUSINESS / RUNTIME EXCEPTIONS
+    // ==========================================================
+
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<ErrorResponse> handleRuntimeException(RuntimeException ex) {
+
+        log.warn("Runtime exception: {}", ex.getMessage());
+
+        return buildResponse(
+                HttpStatus.BAD_REQUEST,
+                ex.getMessage(),
+                null
+        );
+    }
+
+    // ==========================================================
     // GENERIC EXCEPTION
     // ==========================================================
 

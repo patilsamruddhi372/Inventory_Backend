@@ -142,8 +142,11 @@ public class QuotationServiceImpl implements QuotationService {
             throw new RuntimeException("Quotation already converted");
         }
 
-        List<QuotationItem> quotationItems =
-                quotationItemRepository.findByQuotationId(quotationId);
+        if (!"APPROVED".equals(quotation.getStatus())) {
+            throw new RuntimeException("Only APPROVED quotations can be converted");
+        }
+
+        List<QuotationItem> quotationItems = quotationItemRepository.findByQuotationId(quotationId);
 
         SalesInvoice invoice = SalesInvoice.builder()
                 .businessId(businessId)
@@ -173,8 +176,7 @@ public class QuotationServiceImpl implements QuotationService {
                     businessId,
                     qi.getItemId(),
                     qi.getQuantity(),
-                    quotationId
-            );
+                    quotationId);
         }
 
         invoice.setItems(items);
@@ -240,6 +242,47 @@ public class QuotationServiceImpl implements QuotationService {
     }
 
     // ============================================================
+    // UPDATE QUOTATION STATUS
+    // ============================================================
+
+    @Override
+    @Transactional
+    public QuotationResponseDTO updateQuotationStatus(Long businessId,
+            Long quotationId,
+            String status) {
+
+        Quotation quotation = quotationRepository
+                .findByIdAndBusinessIdAndIsDeletedFalse(quotationId, businessId)
+                .orElseThrow(() -> new RuntimeException("Quotation not found"));
+
+        if ("CONVERTED".equals(quotation.getStatus())) {
+            throw new RuntimeException("Cannot change status of converted quotation");
+        }
+
+        if (status == null || status.isBlank()) {
+            throw new RuntimeException("Status is required");
+        }
+
+        String normalizedStatus = status.trim().toUpperCase();
+
+        List<String> allowedStatuses = List.of(
+                "DRAFT",
+                "SENT",
+                "APPROVED",
+                "REJECTED");
+
+        if (!allowedStatuses.contains(normalizedStatus)) {
+            throw new RuntimeException("Invalid quotation status: " + status);
+        }
+
+        quotation.setStatus(normalizedStatus);
+
+        Quotation savedQuotation = quotationRepository.save(quotation);
+
+        return mapToResponseDTO(savedQuotation);
+    }
+
+    // ============================================================
     // VALIDATE PARTY
     // ============================================================
 
@@ -280,31 +323,33 @@ public class QuotationServiceImpl implements QuotationService {
         dto.setDiscountAmount(quotation.getDiscountAmount());
         dto.setShippingCharges(quotation.getShippingCharges());
         dto.setTotalAmount(quotation.getTotalAmount());
+        dto.setPaymentTerms(quotation.getPaymentTerms());
+        dto.setDeliveryTime(quotation.getDeliveryTime());
+        dto.setNotes(quotation.getNotes());
         dto.setStatus(quotation.getStatus());
 
-        List<QuotationItemDTO> itemDTOs =
-                quotationItemRepository.findByQuotationId(quotation.getId())
-                        .stream()
-                        .map(item -> {
+        List<QuotationItemDTO> itemDTOs = quotationItemRepository.findByQuotationId(quotation.getId())
+                .stream()
+                .map(item -> {
 
-                            QuotationItemDTO itemDTO = new QuotationItemDTO();
+                    QuotationItemDTO itemDTO = new QuotationItemDTO();
 
-                            itemDTO.setItemId(item.getItemId());
-                            itemDTO.setItemName(item.getItemName());
-                            itemDTO.setDescription(item.getDescription());
-                            itemDTO.setQuantity(item.getQuantity());
-                            itemDTO.setUnit(item.getUnit());
-                            itemDTO.setRate(item.getRate());
-                            itemDTO.setDiscountPercent(item.getDiscountPercent());
-                            itemDTO.setDiscountAmount(item.getDiscountAmount());
-                            itemDTO.setGstRate(item.getGstRate());
-                            itemDTO.setTaxAmount(item.getTaxAmount());
-                            itemDTO.setAmount(item.getAmount());
-                            itemDTO.setHsnCode(item.getHsnCode());
+                    itemDTO.setItemId(item.getItemId());
+                    itemDTO.setItemName(item.getItemName());
+                    itemDTO.setDescription(item.getDescription());
+                    itemDTO.setQuantity(item.getQuantity());
+                    itemDTO.setUnit(item.getUnit());
+                    itemDTO.setRate(item.getRate());
+                    itemDTO.setDiscountPercent(item.getDiscountPercent());
+                    itemDTO.setDiscountAmount(item.getDiscountAmount());
+                    itemDTO.setGstRate(item.getGstRate());
+                    itemDTO.setTaxAmount(item.getTaxAmount());
+                    itemDTO.setAmount(item.getAmount());
+                    itemDTO.setHsnCode(item.getHsnCode());
 
-                            return itemDTO;
-                        })
-                        .toList();
+                    return itemDTO;
+                })
+                .toList();
 
         dto.setItems(itemDTOs);
 

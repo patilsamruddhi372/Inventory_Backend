@@ -37,6 +37,14 @@ public interface QuotationService {
     void deleteQuotation(Long businessId,
                          Long quotationId);
 
+    // ============================================================
+    // UPDATE QUOTATION STATUS
+    // ============================================================
+
+    QuotationResponseDTO updateQuotationStatus(Long businessId,
+                                               Long quotationId,
+                                               String status);
+
 
     // ============================================================
     // CONVERT QUOTATION → SALES INVOICE
