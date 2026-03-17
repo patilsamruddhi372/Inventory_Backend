@@ -52,6 +52,7 @@ public class QuotationServiceImpl implements QuotationService {
         validateParty(businessId, request.getPartyId());
 
         BigDecimal subtotal = BigDecimal.ZERO;
+        BigDecimal totalItemDiscount = BigDecimal.ZERO;
         BigDecimal taxTotal = BigDecimal.ZERO;
 
         Quotation quotation = Quotation.builder()
@@ -60,7 +61,7 @@ public class QuotationServiceImpl implements QuotationService {
                 .partyId(request.getPartyId())
                 .quotationDate(request.getQuotationDate())
                 .validUntil(request.getValidUntil())
-                .discountAmount(request.getDiscountAmount())
+                .discountAmount(request.getDiscountAmount()) // Global discount
                 .shippingCharges(request.getShippingCharges())
                 .notes(request.getNotes())
                 .paymentTerms(request.getPaymentTerms())
@@ -82,14 +83,23 @@ public class QuotationServiceImpl implements QuotationService {
             BigDecimal quantity = dto.getQuantity();
             BigDecimal rate = dto.getRate();
 
-            BigDecimal amount = quantity.multiply(rate);
+            // 1. Line Gross Amount
+            BigDecimal lineGrossAmount = quantity.multiply(rate);
 
+            // 2. Line Discount
+            BigDecimal discountAmt = dto.getDiscountAmount() != null ? dto.getDiscountAmount() : BigDecimal.ZERO;
+
+            // 3. Taxable Amount
+            BigDecimal taxableAmount = lineGrossAmount.subtract(discountAmt);
+
+            // 4. Tax
             BigDecimal gstRate = dto.getGstRate() == null ? BigDecimal.ZERO : dto.getGstRate();
-
-            BigDecimal taxAmount = amount.multiply(gstRate)
+            BigDecimal taxAmount = taxableAmount.multiply(gstRate)
                     .divide(BigDecimal.valueOf(100));
 
-            subtotal = subtotal.add(amount);
+            // Accumulate totals
+            subtotal = subtotal.add(lineGrossAmount);
+            totalItemDiscount = totalItemDiscount.add(discountAmt);
             taxTotal = taxTotal.add(taxAmount);
 
             QuotationItem quotationItem = QuotationItem.builder()
@@ -101,9 +111,15 @@ public class QuotationServiceImpl implements QuotationService {
                     .quantity(quantity)
                     .unit(dto.getUnit())
                     .rate(rate)
+                    .discountPercent(dto.getDiscountPercent())
+                    .discountAmount(discountAmt)
                     .gstRate(gstRate)
                     .taxAmount(taxAmount)
-                    .amount(amount)
+
+                    // Store line net amount (Taxable) OR (Taxable + Tax)?
+                    // Usually line amount = Taxable Amount
+                    .amount(taxableAmount)
+
                     .hsnCode(dto.getHsnCode())
                     .build();
 
@@ -113,13 +129,25 @@ public class QuotationServiceImpl implements QuotationService {
         quotationItemRepository.saveAll(items);
 
         BigDecimal shipping = request.getShippingCharges() == null ? BigDecimal.ZERO : request.getShippingCharges();
-        BigDecimal discount = request.getDiscountAmount() == null ? BigDecimal.ZERO : request.getDiscountAmount();
+        BigDecimal globalDiscount = request.getDiscountAmount() == null ? BigDecimal.ZERO : request.getDiscountAmount();
 
-        BigDecimal total = subtotal.add(taxTotal).add(shipping).subtract(discount);
+        // Final Total Calculation
+        // (Subtotal - ItemDiscounts) + Tax + Shipping - GlobalDiscount
 
+        BigDecimal grandTotal = subtotal
+                .subtract(totalItemDiscount)
+                .add(taxTotal)
+                .add(shipping)
+                .subtract(globalDiscount);
+
+        // Store totals
         savedQuotation.setSubtotal(subtotal);
         savedQuotation.setTaxAmount(taxTotal);
-        savedQuotation.setTotalAmount(total);
+
+        // IMPORTANT: Store total discount (Item Discounts + Global Discount)
+        savedQuotation.setDiscountAmount(totalItemDiscount.add(globalDiscount));
+
+        savedQuotation.setTotalAmount(grandTotal);
 
         quotationRepository.save(savedQuotation);
 
@@ -138,48 +166,85 @@ public class QuotationServiceImpl implements QuotationService {
                 .findByIdAndBusinessIdAndIsDeletedFalse(quotationId, businessId)
                 .orElseThrow(() -> new RuntimeException("Quotation not found"));
 
-        if ("CONVERTED".equals(quotation.getStatus())) {
+        if("CONVERTED".equals(quotation.getStatus())){
             throw new RuntimeException("Quotation already converted");
         }
 
-        if (!"APPROVED".equals(quotation.getStatus())) {
-            throw new RuntimeException("Only APPROVED quotations can be converted");
+        if(!"APPROVED".equals(quotation.getStatus())){
+            throw new RuntimeException("Only approved quotations can be converted");
         }
 
-        List<QuotationItem> quotationItems = quotationItemRepository.findByQuotationId(quotationId);
+        List<QuotationItem> quotationItems =
+                quotationItemRepository.findByQuotationId(quotationId);
 
+        //1. create fully populated invoice
         SalesInvoice invoice = SalesInvoice.builder()
                 .businessId(businessId)
                 .partyId(quotation.getPartyId())
                 .invoiceNumber(generateInvoiceNumber())
                 .invoiceDate(LocalDate.now())
+                .dueDate(LocalDate.now().plusDays(15))
+                .paymentType("CREDIT")
+                .quotationId(quotationId)
                 .amountPaid(BigDecimal.ZERO)
+                .subtotal(quotation.getSubtotal())
+                .totalDiscount(quotation.getDiscountAmount())
+                .totalTax(quotation.getTaxAmount())
+                .grandTotal(quotation.getTotalAmount())
+                .balance(quotation.getTotalAmount())
+
+                .status("pending")
+                .isDeleted(false)
                 .build();
 
         List<SalesInvoiceItem> items = new ArrayList<>();
 
-        for (QuotationItem qi : quotationItems) {
+        BigDecimal totalCgst = BigDecimal.ZERO;
+        BigDecimal totalSgst = BigDecimal.ZERO;
+        BigDecimal totalIgst = BigDecimal.ZERO;
+
+        for(QuotationItem qi : quotationItems){
+            BigDecimal gstRate = qi.getGstRate() != null ? qi.getGstRate() : BigDecimal.ZERO;
+            BigDecimal taxAmount = qi.getTaxAmount() != null ? qi.getTaxAmount() : BigDecimal.ZERO;
+
+            //split tax intocgst/sgst(50% each)
+            BigDecimal cgst = taxAmount.divide(BigDecimal.valueOf(2));
+            BigDecimal sgst = taxAmount.divide(BigDecimal.valueOf(2));
+            BigDecimal igst = BigDecimal.ZERO;
+
+            totalCgst = totalCgst.add(cgst);
+            totalSgst = totalSgst.add(sgst);
 
             SalesInvoiceItem item = SalesInvoiceItem.builder()
                     .businessId(businessId)
                     .salesInvoice(invoice)
                     .itemId(qi.getItemId())
                     .quantity(qi.getQuantity())
+                    .unit(qi.getUnit())
                     .rate(qi.getRate())
-                    .total(qi.getAmount())
+                    .discount(qi.getDiscountAmount())
+                    .gstRate(gstRate)
+                    .cgstAmount(cgst)
+                    .sgstAmount(sgst)
+                    .igstAmount(igst)
+                    .total(qi.getAmount().add(taxAmount))
                     .build();
 
             items.add(item);
 
-            // 🔹 STOCK REDUCTION
             stockService.decreaseStockFromQuotation(
                     businessId,
                     qi.getItemId(),
                     qi.getQuantity(),
-                    quotationId);
+                    quotationId
+            );
         }
 
         invoice.setItems(items);
+
+        invoice.setTotalCgst(totalCgst);
+        invoice.setTotalSgst(totalSgst);
+        invoice.setTotalIgst(totalIgst);
 
         SalesInvoice savedInvoice = salesInvoiceRepository.save(invoice);
 
