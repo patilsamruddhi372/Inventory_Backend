@@ -288,8 +288,21 @@ public class EWayBillServiceImpl implements EWayBillService {
         response.setInvoiceDate(entity.getInvoiceDate());
         response.setTotalInvoiceValue(entity.getTotalInvoiceValue());
 
+        // Seller Details
         response.setSellerBusinessName(entity.getSellerBusinessName());
+        response.setSellerGstin(entity.getSellerGstin()); // Added
+        response.setSellerState(entity.getSellerState()); // Added
+
+        // Buyer Details
         response.setBuyerName(entity.getBuyerBusinessName());
+        response.setBuyerGstin(entity.getBuyerGstin());   // Added
+        response.setBuyerState(entity.getBuyerState());   // Added
+
+        // Transporter Details
+        response.setTransporterId(entity.getTransporterId()); // Added
+        response.setTransporterName(entity.getTransporterName()); // Added
+        response.setTransporterDocumentNo(entity.getTransporterDocumentNo()); // Added
+        response.setTransporterDocumentDate(entity.getTransporterDocumentDate()); // Added
 
         response.setVehicleNumber(entity.getVehicleNumber());
         response.setTransportMode(entity.getTransportMode());

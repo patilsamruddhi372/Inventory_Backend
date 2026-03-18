@@ -15,26 +15,33 @@ public class EWayBillResponse {
     private String customerName;
     private BigDecimal totalInvoiceValue;
 
+    //seller details
     private String sellerBusinessName;
+    private String sellerGstin;
+    public String sellerState;
 
+    //buyer details
     private String buyerName;
+    private String buyerGstin;
+    private String buyerState;
+
+    //transport details
+    private String transporterId;
+    private String transporterName;
+    private String transporterDocumentNo;
+    private LocalDate transporterDocumentDate;
 
     private String vehicleNumber;
-
     private TransportMode transportMode;
-
     private Integer distanceKm;
 
     private LocalDateTime validFrom;
-
     private LocalDateTime validUntil;
-
     private EWayBillStatus status;
-
     private Long daysRemaining;
-
     private LocalDateTime createdAt;
 
+    //getters and setters
     public void setId(Long id) {
         this.id = id;
     }
@@ -161,5 +168,69 @@ public class EWayBillResponse {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getSellerGstin() {
+        return sellerGstin;
+    }
+
+    public void setSellerGstin(String sellerGstin) {
+        this.sellerGstin = sellerGstin;
+    }
+
+    public String getSellerState() {
+        return sellerState;
+    }
+
+    public void setSellerState(String sellerState) {
+        this.sellerState = sellerState;
+    }
+
+    public String getBuyerGstin() {
+        return buyerGstin;
+    }
+
+    public void setBuyerGstin(String buyerGstin) {
+        this.buyerGstin = buyerGstin;
+    }
+
+    public String getBuyerState() {
+        return buyerState;
+    }
+
+    public void setBuyerState(String buyerState) {
+        this.buyerState = buyerState;
+    }
+
+    public String getTransporterId() {
+        return transporterId;
+    }
+
+    public void setTransporterId(String transporterId) {
+        this.transporterId = transporterId;
+    }
+
+    public String getTransporterName() {
+        return transporterName;
+    }
+
+    public void setTransporterName(String transporterName) {
+        this.transporterName = transporterName;
+    }
+
+    public String getTransporterDocumentNo() {
+        return transporterDocumentNo;
+    }
+
+    public void setTransporterDocumentNo(String transporterDocumentNo) {
+        this.transporterDocumentNo = transporterDocumentNo;
+    }
+
+    public LocalDate getTransporterDocumentDate() {
+        return transporterDocumentDate;
+    }
+
+    public void setTransporterDocumentDate(LocalDate transporterDocumentDate) {
+        this.transporterDocumentDate = transporterDocumentDate;
     }
 }

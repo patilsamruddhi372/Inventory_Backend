@@ -83,6 +83,7 @@ public class EwayBillController {
         return ResponseEntity.noContent().build();
     }
 
+    //get all bills with pagination
     @GetMapping
     public Page<EWayBillResponse> getAllBills(
             @RequestParam Long businessId,
