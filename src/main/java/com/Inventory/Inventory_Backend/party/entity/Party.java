@@ -27,6 +27,7 @@ public class Party {
     private String gstin;
     private LocalDate sinceDate;
     private BigDecimal creditLimit;
+    private BigDecimal openingBalance;
 
     private String phone;
     private String email;
@@ -180,5 +181,20 @@ public class Party {
         this.updatedAt = updatedAt;
     }
 
+    public BigDecimal getOpeningBalance() {
+        return openingBalance;
+    }
+
+    public void setOpeningBalance(BigDecimal openingBalance) {
+        this.openingBalance = openingBalance;
+    }
+
+    public Boolean getActive() {
+        return isActive;
+    }
+
+    public void setActive(Boolean active) {
+        isActive = active;
+    }
 }
 

@@ -1,0 +1,1 @@
+ALTER TABLE party ADD COLUMN opening_balance NUMERIC(19, 2);

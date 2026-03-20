@@ -14,6 +14,7 @@ public class PartyResponse {
     private String gstin;
     private LocalDate sinceDate;
     private BigDecimal creditLimit;
+    private BigDecimal openingBalance;
 
     private String phone;
     private String email;
@@ -134,5 +135,13 @@ public class PartyResponse {
 
     public void setCountry(String country) {
         this.country = country;
+    }
+
+    public BigDecimal getOpeningBalance() {
+        return openingBalance;
+    }
+
+    public void setOpeningBalance(BigDecimal openingBalance) {
+        this.openingBalance = openingBalance;
     }
 }

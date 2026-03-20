@@ -45,6 +45,7 @@ public class PartyServiceImpl implements PartyService {
         party.setGstin(request.getGstin());
         party.setSinceDate(request.getSinceDate());
         party.setCreditLimit(request.getCreditLimit());
+        party.setOpeningBalance(request.getOpeningBalance());
         party.setPhone(request.getPhone());
         party.setEmail(request.getEmail());
         party.setAddressLine1(request.getAddressLine1());
@@ -86,6 +87,7 @@ public class PartyServiceImpl implements PartyService {
         existing.setGstin(request.getGstin());
         existing.setSinceDate(request.getSinceDate());
         existing.setCreditLimit(request.getCreditLimit());
+        existing.setOpeningBalance(request.getOpeningBalance());
         existing.setPhone(request.getPhone());
         existing.setEmail(request.getEmail());
         existing.setAddressLine1(request.getAddressLine1());
@@ -135,6 +137,9 @@ public class PartyServiceImpl implements PartyService {
 
         if (request.getCreditLimit() != null)
             existing.setCreditLimit(request.getCreditLimit());
+
+        if(request.getOpeningBalance() != null)
+            existing.setOpeningBalance(request.getOpeningBalance());
 
         if (request.getPhone() != null)
             existing.setPhone(request.getPhone());
@@ -207,6 +212,7 @@ public class PartyServiceImpl implements PartyService {
         response.setGstin(party.getGstin());
         response.setSinceDate(party.getSinceDate());
         response.setCreditLimit(party.getCreditLimit());
+        response.setOpeningBalance(party.getOpeningBalance());
         response.setPhone(party.getPhone());
         response.setEmail(party.getEmail());
         response.setAddressLine1(party.getAddressLine1());
