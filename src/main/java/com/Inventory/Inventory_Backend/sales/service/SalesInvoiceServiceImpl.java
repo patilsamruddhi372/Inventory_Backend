@@ -3,6 +3,7 @@ package com.Inventory.Inventory_Backend.sales.service;
 import com.Inventory.Inventory_Backend.item.entity.Item;
 import com.Inventory.Inventory_Backend.item.repository.ItemRepository;
 import com.Inventory.Inventory_Backend.party.repository.PartyRepository;
+import com.Inventory.Inventory_Backend.party.entity.PartyType; // ✅ ADDED
 import com.Inventory.Inventory_Backend.sales.common.exception.InsufficientStockException;
 import com.Inventory.Inventory_Backend.sales.common.exception.ResourceNotFoundException;
 import com.Inventory.Inventory_Backend.sales.dto.SalesInvoiceItemDTO;
@@ -36,10 +37,7 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
     private final SalesMapper salesMapper;
     private final StockService stockService;
 
-    // ============================================================
-    // CREATE SALES INVOICE
-    // ============================================================
-
+    // ================= CREATE =================
     @Override
     @Transactional
     public SalesInvoiceResponseDTO createSalesInvoice(Long businessId,
@@ -60,15 +58,13 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
                 .build();
 
         processItems(invoice, request.getItems(), request.isInterState(), businessId);
-
         calculateInvoiceTotals(invoice);
 
         SalesInvoice saved = invoiceRepository.save(invoice);
 
         for (SalesInvoiceItem item : saved.getItems()) {
-
             stockService.decreaseStock(
-                    saved.getBusinessId(),
+                    businessId,
                     item.getItemId(),
                     item.getQuantity(),
                     saved.getId()
@@ -77,7 +73,6 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
 
         SalesInvoiceResponseDTO response = salesMapper.toResponseDTO(saved);
 
-        // check if eway bill required
         boolean eWayBillRequired =
                 saved.getGrandTotal().compareTo(new BigDecimal("50000")) > 0;
 
@@ -86,10 +81,7 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
         return response;
     }
 
-    // ============================================================
-    // GET ALL SALES INVOICES
-    // ============================================================
-
+    // ================= GET =================
     @Override
     public List<SalesInvoiceResponseDTO> getAllSalesInvoices(Long businessId) {
 
@@ -100,22 +92,13 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
                 .toList();
     }
 
-    // ============================================================
-    // GET BY ID
-    // ============================================================
-
     @Override
     public SalesInvoiceResponseDTO getSalesInvoiceById(Long businessId, Long invoiceId) {
 
-        SalesInvoice invoice = findActiveInvoice(businessId, invoiceId);
-
-        return salesMapper.toResponseDTO(invoice);
+        return salesMapper.toResponseDTO(findActiveInvoice(businessId, invoiceId));
     }
 
-    // ============================================================
-    // UPDATE INVOICE
-    // ============================================================
-
+    // ================= UPDATE =================
     @Override
     @Transactional
     public SalesInvoiceResponseDTO updateSalesInvoice(Long businessId,
@@ -127,7 +110,6 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
         validatePartyExists(businessId, request.getPartyId());
 
         restoreStockForItems(invoice.getItems());
-
         invoice.getItems().clear();
 
         invoice.setPartyId(request.getPartyId());
@@ -137,15 +119,13 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
         invoice.setAmountPaid(safe(request.getAmountPaid()));
 
         processItems(invoice, request.getItems(), request.isInterState(), businessId);
-
         calculateInvoiceTotals(invoice);
 
         SalesInvoice saved = invoiceRepository.save(invoice);
 
         for (SalesInvoiceItem item : saved.getItems()) {
-
             stockService.decreaseStock(
-                    saved.getBusinessId(),
+                    businessId,
                     item.getItemId(),
                     item.getQuantity(),
                     saved.getId()
@@ -155,174 +135,68 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
         return salesMapper.toResponseDTO(saved);
     }
 
-    // ============================================================
-    // DELETE INVOICE
-    // ============================================================
-
+    // ================= DELETE =================
     @Override
     @Transactional
     public void deleteSalesInvoice(Long businessId, Long invoiceId) {
 
         SalesInvoice invoice = findActiveInvoice(businessId, invoiceId);
 
-        restoreStockForItems(invoice.getItems());
+        if (invoice.getAmountPaid() != null &&
+                invoice.getAmountPaid().compareTo(BigDecimal.ZERO) > 0) {
+
+            throw new RuntimeException("Cannot delete paid or partially paid invoice");
+        }
+
+        if ("paid".equalsIgnoreCase(invoice.getStatus()) ||
+                "partial".equalsIgnoreCase(invoice.getStatus())) {
+
+            throw new RuntimeException("Cannot delete paid or partially paid invoice");
+        }
 
         invoice.setIsDeleted(true);
-        invoice.setStatus("cancelled");
-
         invoiceRepository.save(invoice);
     }
 
-    // ============================================================
-    // PROCESS ITEMS
-    // ============================================================
+    // ================= CANCEL =================
+    @Override
+    @Transactional
+    public SalesInvoiceResponseDTO cancelInvoice(Long businessId, Long invoiceId) {
 
-    private void processItems(SalesInvoice invoice,
-                              List<SalesInvoiceItemDTO> itemDTOs,
-                              boolean interState,
-                              Long businessId) {
+        SalesInvoice invoice = findActiveInvoice(businessId, invoiceId);
 
-        for (SalesInvoiceItemDTO dto : itemDTOs) {
+        restoreStockForItems(invoice.getItems());
+        invoice.setStatus("CANCELLED");
 
-            Item item = itemRepository.findById(dto.getItemId())
-                    .orElseThrow(() ->
-                            new ResourceNotFoundException("Item not found: " + dto.getItemId()));
+        return salesMapper.toResponseDTO(invoiceRepository.save(invoice));
+    }
 
-            StockResponseDTO stock = stockService.getStock(businessId, dto.getItemId());
+    // ================= VALIDATION =================
+    private void validatePartyExists(Long businessId, Long partyId) {
 
-            BigDecimal availableStock =
-                    stock != null ? stock.getQuantity() : BigDecimal.ZERO;
+        var party = partyRepository.findById(partyId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Customer not found: " + partyId));
 
-            if (availableStock.compareTo(dto.getQuantity()) < 0) {
+        if (!party.getBusinessId().equals(businessId) || !party.getIsActive()) {
+            throw new ResourceNotFoundException("Customer not found: " + partyId);
+        }
 
-                throw new InsufficientStockException(
-                        "Insufficient stock for item: " + item.getName());
-            }
+        // ✅ ENUM FIX (MAIN ERROR SOLVED)
+        if (party.getType() != PartyType.CUSTOMER &&
+                party.getType() != PartyType.BOTH) {
 
-            BigDecimal quantity = dto.getQuantity();
-            BigDecimal rate = dto.getRate();
-            BigDecimal discount = safe(dto.getDiscount());
-            BigDecimal gstRate = safe(dto.getGstRate());
-
-            BigDecimal lineAmount = quantity.multiply(rate);
-            BigDecimal taxableAmount = lineAmount.subtract(discount);
-
-            BigDecimal cgst = BigDecimal.ZERO;
-            BigDecimal sgst = BigDecimal.ZERO;
-            BigDecimal igst = BigDecimal.ZERO;
-
-            if (interState) {
-
-                igst = taxableAmount.multiply(gstRate)
-                        .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-
-            } else {
-
-                cgst = taxableAmount.multiply(gstRate)
-                        .divide(BigDecimal.valueOf(200), 2, RoundingMode.HALF_UP);
-
-                sgst = cgst;
-            }
-
-            BigDecimal total = taxableAmount
-                    .add(cgst)
-                    .add(sgst)
-                    .add(igst);
-
-            SalesInvoiceItem lineItem = SalesInvoiceItem.builder()
-                    .businessId(businessId)
-                    .salesInvoice(invoice)   // IMPORTANT RELATION
-                    .itemId(dto.getItemId())
-                    .quantity(quantity)
-                    .unit(dto.getUnit())
-                    .rate(rate)
-                    .discount(discount)
-                    .gstRate(gstRate)
-                    .cgstAmount(cgst)
-                    .sgstAmount(sgst)
-                    .igstAmount(igst)
-                    .total(total)
-                    .build();
-
-            invoice.addItem(lineItem);
+            throw new RuntimeException("Only CUSTOMER or BOTH type allowed for sales");
         }
     }
 
-    // ============================================================
-    // RESTORE STOCK
-    // ============================================================
+    private SalesInvoice findActiveInvoice(Long businessId, Long invoiceId) {
 
-    private void restoreStockForItems(List<SalesInvoiceItem> items) {
-
-        for (SalesInvoiceItem lineItem : items) {
-
-            stockService.increaseStock(
-                    lineItem.getBusinessId(),
-                    lineItem.getItemId(),
-                    lineItem.getQuantity(),
-                    null
-            );
-        }
+        return invoiceRepository
+                .findByIdAndBusinessIdAndIsDeletedFalse(invoiceId, businessId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Sales invoice not found: " + invoiceId));
     }
-
-    // ============================================================
-    // CALCULATE TOTALS
-    // ============================================================
-
-    private void calculateInvoiceTotals(SalesInvoice invoice) {
-
-        BigDecimal subtotal = BigDecimal.ZERO;
-        BigDecimal totalDiscount = BigDecimal.ZERO;
-        BigDecimal totalCgst = BigDecimal.ZERO;
-        BigDecimal totalSgst = BigDecimal.ZERO;
-        BigDecimal totalIgst = BigDecimal.ZERO;
-
-        for (SalesInvoiceItem item : invoice.getItems()) {
-
-            subtotal = subtotal.add(item.getQuantity().multiply(item.getRate()));
-            totalDiscount = totalDiscount.add(item.getDiscount());
-            totalCgst = totalCgst.add(item.getCgstAmount());
-            totalSgst = totalSgst.add(item.getSgstAmount());
-            totalIgst = totalIgst.add(item.getIgstAmount());
-        }
-
-        BigDecimal totalTax = totalCgst.add(totalSgst).add(totalIgst);
-
-        BigDecimal grandTotal = subtotal
-                .subtract(totalDiscount)
-                .add(totalTax);
-
-        BigDecimal paid = safe(invoice.getAmountPaid());
-
-        BigDecimal balance = grandTotal.subtract(paid);
-
-        invoice.setSubtotal(subtotal);
-        invoice.setTotalDiscount(totalDiscount);
-        invoice.setTotalCgst(totalCgst);
-        invoice.setTotalSgst(totalSgst);
-        invoice.setTotalIgst(totalIgst);
-        invoice.setTotalTax(totalTax);
-        invoice.setGrandTotal(grandTotal);
-        invoice.setBalance(balance);
-        invoice.setStatus(determineStatus(paid, grandTotal));
-    }
-
-    // ============================================================
-    // STATUS
-    // ============================================================
-
-    private String determineStatus(BigDecimal paid, BigDecimal total) {
-
-        if (paid.compareTo(total) >= 0) return "paid";
-
-        if (paid.compareTo(BigDecimal.ZERO) > 0) return "partial";
-
-        return "pending";
-    }
-
-    // ============================================================
-    // INVOICE NUMBER
-    // ============================================================
 
     private String generateInvoiceNumber(Long businessId) {
 
@@ -336,28 +210,64 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
         return String.format("INV-%06d", next);
     }
 
-    // ============================================================
-    // VALIDATIONS
-    // ============================================================
+    private BigDecimal safe(BigDecimal value) {
+        return value != null ? value : BigDecimal.ZERO;
+    }
 
-    private void validatePartyExists(Long businessId, Long partyId) {
+    // ================= STOCK =================
+    private void restoreStockForItems(List<SalesInvoiceItem> items) {
 
-        if (!partyRepository.existsByIdAndBusinessIdAndIsActiveTrue(partyId, businessId)) {
-
-            throw new ResourceNotFoundException("Customer not found: " + partyId);
+        for (SalesInvoiceItem item : items) {
+            stockService.increaseStock(
+                    item.getBusinessId(),
+                    item.getItemId(),
+                    item.getQuantity(),
+                    null
+            );
         }
     }
 
-    private SalesInvoice findActiveInvoice(Long businessId, Long invoiceId) {
+    private void processItems(SalesInvoice invoice,
+                              List<SalesInvoiceItemDTO> items,
+                              boolean interState,
+                              Long businessId) {
 
-        return invoiceRepository
-                .findByIdAndBusinessIdAndIsDeletedFalse(invoiceId, businessId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Sales invoice not found: " + invoiceId));
+        for (SalesInvoiceItemDTO dto : items) {
+
+            Item item = itemRepository.findById(dto.getItemId())
+                    .orElseThrow(() ->
+                            new ResourceNotFoundException("Item not found"));
+
+            StockResponseDTO stock = stockService.getStock(businessId, dto.getItemId());
+
+            if (stock.getQuantity().compareTo(dto.getQuantity()) < 0) {
+                throw new InsufficientStockException("Insufficient stock");
+            }
+
+            SalesInvoiceItem entity = SalesInvoiceItem.builder()
+                    .businessId(businessId)
+                    .salesInvoice(invoice)
+                    .itemId(dto.getItemId())
+                    .quantity(dto.getQuantity())
+                    .rate(dto.getRate())
+                    .unit(dto.getUnit())
+                    .discount(safe(dto.getDiscount()))
+                    .gstRate(safe(dto.getGstRate()))
+                    .build();
+
+            invoice.addItem(entity);
+        }
     }
 
-    private BigDecimal safe(BigDecimal value) {
+    private void calculateInvoiceTotals(SalesInvoice invoice) {
 
-        return value != null ? value : BigDecimal.ZERO;
+        BigDecimal total = BigDecimal.ZERO;
+
+        for (SalesInvoiceItem item : invoice.getItems()) {
+            total = total.add(item.getQuantity().multiply(item.getRate()));
+        }
+
+        invoice.setGrandTotal(total);
+        invoice.setBalance(total.subtract(safe(invoice.getAmountPaid())));
     }
 }

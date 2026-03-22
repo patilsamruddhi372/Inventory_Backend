@@ -106,4 +106,21 @@ public class PurchaseInvoiceController {
 
         return ResponseEntity.noContent().build();
     }
+
+    // ==========================================================
+    // CANCEL PURCHASE (NEW)
+    // ==========================================================
+    @PatchMapping("/{id}/cancel")
+    public ResponseEntity<PurchaseInvoiceResponseDTO> cancelPurchaseInvoice(
+            @PathVariable Long id) {
+
+        Long businessId = businessContext.getCurrentBusinessId();
+
+        log.info("PATCH /api/purchases/{}/cancel — businessId={}", id, businessId);
+
+        PurchaseInvoiceResponseDTO response =
+                purchaseInvoiceService.cancelInvoice(businessId, id);
+
+        return ResponseEntity.ok(response);
+    }
 }

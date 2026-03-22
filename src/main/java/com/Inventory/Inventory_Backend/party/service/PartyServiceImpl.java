@@ -4,6 +4,7 @@ import com.Inventory.Inventory_Backend.party.dto.PartyCreateRequest;
 import com.Inventory.Inventory_Backend.party.dto.PartyResponse;
 import com.Inventory.Inventory_Backend.party.dto.PartyUpdateRequest;
 import com.Inventory.Inventory_Backend.party.entity.Party;
+import com.Inventory.Inventory_Backend.party.entity.PartyType;
 import com.Inventory.Inventory_Backend.party.repository.PartyRepository;
 
 import org.springframework.stereotype.Service;
@@ -59,7 +60,6 @@ public class PartyServiceImpl implements PartyService {
         return mapToResponse(saved);
     }
 
-
     // -------- FULL UPDATE (PUT) --------
     @Override
     public PartyResponse update(Long businessId, Long id, PartyUpdateRequest request) {
@@ -100,7 +100,6 @@ public class PartyServiceImpl implements PartyService {
         return mapToResponse(saved);
     }
 
-
     // -------- PARTIAL UPDATE (PATCH) --------
     @Override
     public PartyResponse patchUpdate(Long businessId, Long id, PartyUpdateRequest request) {
@@ -138,7 +137,7 @@ public class PartyServiceImpl implements PartyService {
         if (request.getCreditLimit() != null)
             existing.setCreditLimit(request.getCreditLimit());
 
-        if(request.getOpeningBalance() != null)
+        if (request.getOpeningBalance() != null)
             existing.setOpeningBalance(request.getOpeningBalance());
 
         if (request.getPhone() != null)
@@ -166,7 +165,6 @@ public class PartyServiceImpl implements PartyService {
         return mapToResponse(saved);
     }
 
-
     // -------- GET ALL --------
     @Override
     public List<PartyResponse> getAll(Long businessId) {
@@ -176,6 +174,43 @@ public class PartyServiceImpl implements PartyService {
                 .toList();
     }
 
+    // -------- GET BY TYPE (🔥 NEW) --------
+    @Override
+    public List<PartyResponse> getByType(Long businessId, PartyType type) {
+
+        if (type == PartyType.CUSTOMER) {
+            return repository
+                    .findByBusinessIdAndTypeInAndIsActiveTrue(
+                            businessId,
+                            List.of(PartyType.CUSTOMER, PartyType.BOTH))
+                    .stream()
+                    .map(this::mapToResponse)
+                    .toList();
+        }
+
+        if (type == PartyType.SUPPLIER) {
+            return repository
+                    .findByBusinessIdAndTypeInAndIsActiveTrue(
+                            businessId,
+                            List.of(PartyType.SUPPLIER, PartyType.BOTH))
+                    .stream()
+                    .map(this::mapToResponse)
+                    .toList();
+        }
+
+        return getAll(businessId);
+    }
+
+    // -------- GET BY MULTIPLE TYPES (PRO 🔥) --------
+    @Override
+    public List<PartyResponse> getByTypes(Long businessId, List<PartyType> types) {
+
+        return repository
+                .findByBusinessIdAndTypeInAndIsActiveTrue(businessId, types)
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
 
     // -------- GET BY ID --------
     @Override
@@ -187,7 +222,6 @@ public class PartyServiceImpl implements PartyService {
         return mapToResponse(party);
     }
 
-
     // -------- DELETE (SOFT DELETE) --------
     @Override
     public void delete(Long businessId, Long id) {
@@ -198,7 +232,6 @@ public class PartyServiceImpl implements PartyService {
         existing.setIsActive(false);
         repository.save(existing);
     }
-
 
     // -------- HELPER --------
     private PartyResponse mapToResponse(Party party) {

@@ -4,7 +4,8 @@ import com.Inventory.Inventory_Backend.common.BusinessContext;
 import com.Inventory.Inventory_Backend.party.dto.PartyCreateRequest;
 import com.Inventory.Inventory_Backend.party.dto.PartyResponse;
 import com.Inventory.Inventory_Backend.party.dto.PartyUpdateRequest;
-import com.Inventory.Inventory_Backend.party.service.PartyServiceImpl;
+import com.Inventory.Inventory_Backend.party.entity.PartyType; // ✅ added
+import com.Inventory.Inventory_Backend.party.service.PartyService; // ✅ changed
 
 import jakarta.validation.Valid;
 
@@ -17,10 +18,10 @@ import java.util.List;
 @RequestMapping("/api/parties")
 public class PartyController {
 
-    private final PartyServiceImpl service;
+    private final PartyService service; // ✅ changed
     private final BusinessContext businessContext;
 
-    public PartyController(PartyServiceImpl service,
+    public PartyController(PartyService service,
                            BusinessContext businessContext) {
         this.service = service;
         this.businessContext = businessContext;
@@ -35,22 +36,25 @@ public class PartyController {
         return ResponseEntity.ok(service.create(businessId, request));
     }
 
-    // -------- GET ALL --------
+    // -------- GET ALL / FILTER --------
     @GetMapping
-    public ResponseEntity<List<PartyResponse>> getAll() {
+    public ResponseEntity<List<PartyResponse>> getAll(
+            @RequestParam(required = false) PartyType type) { // ✅ added
 
         Long businessId = businessContext.getCurrentBusinessId();
+
+        // ✅ if filter applied
+        if (type != null) {
+            return ResponseEntity.ok(service.getByType(businessId, type));
+        }
+
+        // ✅ existing logic untouched
         return ResponseEntity.ok(service.getAll(businessId));
     }
 
     // -------- GET BY ID --------
-    @GetMapping("/{id}")
-    public ResponseEntity<PartyResponse> getById(
-            @PathVariable Long id) {
+    // ✅ if filter applied
 
-        Long businessId = businessContext.getCurrentBusinessId();
-        return ResponseEntity.ok(service.getById(businessId, id));
-    }
 
     // -------- FULL UPDATE --------
     @PutMapping("/{id}")
