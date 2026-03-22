@@ -1,8 +1,7 @@
 package com.Inventory.Inventory_Backend.purchase.service;
 
 import com.Inventory.Inventory_Backend.purchase.dto.PurchaseInvoiceRequestDTO;
-import com.Inventory.Inventory_Backend.purchase.dto.PurchaseInvoiceResponseDTO;
-
+import com.Inventory.Inventory_Backend.purchase.dto.PurchaseInvoiceResponseDTO; // ✅ ADDED
 import java.util.List;
 
 public interface PurchaseInvoiceService {
@@ -43,6 +42,14 @@ public interface PurchaseInvoiceService {
     // DELETE PURCHASE INVOICE (SOFT DELETE)
     // ==========================================================
     void deletePurchaseInvoice(
+            Long businessId,
+            Long id
+    );
+
+    // ==========================================================
+    // CANCEL PURCHASE INVOICE (NEW)
+    // ==========================================================
+    PurchaseInvoiceResponseDTO cancelInvoice(
             Long businessId,
             Long id
     );

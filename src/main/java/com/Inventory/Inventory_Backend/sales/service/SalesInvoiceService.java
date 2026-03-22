@@ -46,4 +46,12 @@ public interface SalesInvoiceService {
             Long businessId,
             Long invoiceId
     );
+
+    // ==========================================================
+    // CANCEL SALES INVOICE
+    // ==========================================================
+    SalesInvoiceResponseDTO cancelInvoice(
+            Long businessId,
+            Long invoiceId
+    );
 }

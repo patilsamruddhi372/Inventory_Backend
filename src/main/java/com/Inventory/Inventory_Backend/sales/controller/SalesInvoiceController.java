@@ -1,5 +1,6 @@
 package com.Inventory.Inventory_Backend.sales.controller;
 
+import com.Inventory.Inventory_Backend.common.BusinessContext; // ✅ ADDED
 import com.Inventory.Inventory_Backend.sales.dto.SalesInvoiceRequestDTO;
 import com.Inventory.Inventory_Backend.sales.dto.SalesInvoiceResponseDTO;
 import com.Inventory.Inventory_Backend.sales.service.SalesInvoiceService;
@@ -18,14 +19,16 @@ import java.util.List;
 public class SalesInvoiceController {
 
     private final SalesInvoiceService salesInvoiceService;
+    private final BusinessContext businessContext; // ✅ ADDED
 
     // =========================
     // CREATE SALES INVOICE
     // =========================
     @PostMapping
     public ResponseEntity<SalesInvoiceResponseDTO> createSalesInvoice(
-            @RequestHeader("X-Business-Id") Long businessId,
             @Valid @RequestBody SalesInvoiceRequestDTO request) {
+
+        Long businessId = businessContext.getCurrentBusinessId(); // ✅ UPDATED
 
         SalesInvoiceResponseDTO response =
                 salesInvoiceService.createSalesInvoice(businessId, request);
@@ -37,8 +40,9 @@ public class SalesInvoiceController {
     // GET ALL SALES INVOICES
     // =========================
     @GetMapping
-    public ResponseEntity<List<SalesInvoiceResponseDTO>> getAllSalesInvoices(
-            @RequestHeader("X-Business-Id") Long businessId) {
+    public ResponseEntity<List<SalesInvoiceResponseDTO>> getAllSalesInvoices() {
+
+        Long businessId = businessContext.getCurrentBusinessId(); // ✅ UPDATED
 
         List<SalesInvoiceResponseDTO> invoices =
                 salesInvoiceService.getAllSalesInvoices(businessId);
@@ -51,8 +55,9 @@ public class SalesInvoiceController {
     // =========================
     @GetMapping("/{id}")
     public ResponseEntity<SalesInvoiceResponseDTO> getSalesInvoiceById(
-            @RequestHeader("X-Business-Id") Long businessId,
             @PathVariable("id") Long invoiceId) {
+
+        Long businessId = businessContext.getCurrentBusinessId(); // ✅ UPDATED
 
         SalesInvoiceResponseDTO response =
                 salesInvoiceService.getSalesInvoiceById(businessId, invoiceId);
@@ -65,9 +70,10 @@ public class SalesInvoiceController {
     // =========================
     @PutMapping("/{id}")
     public ResponseEntity<SalesInvoiceResponseDTO> updateSalesInvoice(
-            @RequestHeader("X-Business-Id") Long businessId,
             @PathVariable("id") Long invoiceId,
             @Valid @RequestBody SalesInvoiceRequestDTO request) {
+
+        Long businessId = businessContext.getCurrentBusinessId(); // ✅ UPDATED
 
         SalesInvoiceResponseDTO response =
                 salesInvoiceService.updateSalesInvoice(businessId, invoiceId, request);
@@ -80,11 +86,27 @@ public class SalesInvoiceController {
     // =========================
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteSalesInvoice(
-            @RequestHeader("X-Business-Id") Long businessId,
             @PathVariable("id") Long invoiceId) {
+
+        Long businessId = businessContext.getCurrentBusinessId(); // ✅ UPDATED
 
         salesInvoiceService.deleteSalesInvoice(businessId, invoiceId);
 
         return ResponseEntity.noContent().build();
+    }
+
+    // =========================
+    // CANCEL SALES INVOICE (NEW)
+    // =========================
+    @PatchMapping("/{id}/cancel")
+    public ResponseEntity<SalesInvoiceResponseDTO> cancelSalesInvoice(
+            @PathVariable("id") Long invoiceId) {
+
+        Long businessId = businessContext.getCurrentBusinessId(); // ✅ UPDATED
+
+        SalesInvoiceResponseDTO response =
+                salesInvoiceService.cancelInvoice(businessId, invoiceId);
+
+        return ResponseEntity.ok(response);
     }
 }
