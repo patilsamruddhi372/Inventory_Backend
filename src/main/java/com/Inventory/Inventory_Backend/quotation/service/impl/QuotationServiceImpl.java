@@ -77,7 +77,8 @@ public class QuotationServiceImpl implements QuotationService {
 
         for (QuotationItemDTO dto : request.getItems()) {
 
-            Item item = itemRepository.findById(dto.getItemId())
+            Item item = itemRepository
+                    .findByIdAndBusinessId(dto.getItemId(), businessId)
                     .orElseThrow(() -> new RuntimeException("Item not found: " + dto.getItemId()));
 
             BigDecimal quantity = dto.getQuantity();
@@ -125,6 +126,8 @@ public class QuotationServiceImpl implements QuotationService {
 
             items.add(quotationItem);
         }
+
+        savedQuotation.setItems(items);
 
         quotationItemRepository.saveAll(items);
 
@@ -175,7 +178,14 @@ public class QuotationServiceImpl implements QuotationService {
         }
 
         List<QuotationItem> quotationItems =
-                quotationItemRepository.findByQuotationId(quotationId);
+                quotationItemRepository.findByQuotationIdAndBusinessId(quotationId, businessId);
+
+        //security check
+        for(QuotationItem qi : quotationItems){
+            if(!qi.getBusinessId().equals(businessId)){
+                throw new RuntimeException("Cross-business data access detected");
+            }
+        }
 
         //1. create fully populated invoice
         SalesInvoice invoice = SalesInvoice.builder()
@@ -393,7 +403,7 @@ public class QuotationServiceImpl implements QuotationService {
         dto.setNotes(quotation.getNotes());
         dto.setStatus(quotation.getStatus());
 
-        List<QuotationItemDTO> itemDTOs = quotationItemRepository.findByQuotationId(quotation.getId())
+        List<QuotationItemDTO> itemDTOs = quotationItemRepository.findByQuotationIdAndBusinessId(quotation.getId(), quotation.getBusinessId())
                 .stream()
                 .map(item -> {
 

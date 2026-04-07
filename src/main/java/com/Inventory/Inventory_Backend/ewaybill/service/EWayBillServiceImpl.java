@@ -46,14 +46,25 @@ public class EWayBillServiceImpl implements EWayBillService {
     public EWayBillResponse createEWayBill(Long businessId, EWayBillCreateRequest request) {
 
         SalesInvoice invoice = salesInvoiceRepository
-                .findById(request.getSalesInvoiceId())
+                .findByIdAndBusinessIdAndIsDeletedFalse(
+                        request.getSalesInvoiceId(),
+                        businessId)
                 .orElseThrow(() -> new RuntimeException("Sales Invoice not found"));
 
+        if(!invoice.getBusinessId().equals(businessId)){
+            throw new RuntimeException("Cross-business invoice access detected");
+        }
+
         Party buyer = partyRepository
-                .findById(invoice.getPartyId())
+                .findByIdAndBusinessIdAndIsActiveTrue(
+                        invoice.getPartyId(),
+                        businessId)
                 .orElseThrow(() -> new RuntimeException("Buyer not found"));
 
-        Optional<EWayBill> existing = repository.findBySalesInvoiceId(request.getSalesInvoiceId());
+        Optional<EWayBill> existing =
+                repository.findBySalesInvoiceIdAndBusinessId(
+                        request.getSalesInvoiceId(),
+                        businessId);
 
         if (existing.isPresent()) {
             throw new RuntimeException("EWay Bill already exists for this invoice");
@@ -74,7 +85,7 @@ public class EWayBillServiceImpl implements EWayBillService {
         entity.setInvoiceDate(invoice.getInvoiceDate());
         entity.setTotalInvoiceValue(invoice.getGrandTotal());
 
-        entity.setEwayBillNumber(generateEWayBillNumber());
+        entity.setEwayBillNumber(generateEWayBillNumber(businessId));
 
         entity.setTransporterId(request.getTransporterId());
         entity.setTransporterName(request.getTransporterName());
@@ -194,6 +205,7 @@ public class EWayBillServiceImpl implements EWayBillService {
         audit.setEwayBillId(entity.getId());
         audit.setOldVehicleNumber(oldVehicle);
         audit.setNewVehicleNumber(request.getVehicleNumber());
+        audit.setBusinessId(businessId);
         audit.setUpdatedAt(LocalDateTime.now());
 
         auditRepository.save(audit);
@@ -260,10 +272,10 @@ public class EWayBillServiceImpl implements EWayBillService {
         return LocalDateTime.now().plusDays(days);
     }
 
-    private String generateEWayBillNumber() {
+    private String generateEWayBillNumber(Long businessId) {
         int year = LocalDateTime.now().getYear();
 
-        Optional<EWayBill> lastBill = repository.findTopByOrderByIdDesc();
+        Optional<EWayBill> lastBill = repository.findTopByBusinessIdOrderByIdDesc(businessId);
 
         int nextNumber = 1;
 

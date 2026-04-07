@@ -13,6 +13,8 @@ public class EWayBillVehicleAudit {
 
     private Long ewayBillId;
 
+    private Long businessId;
+
     private String oldVehicleNumber;
 
     private String newVehicleNumber;
@@ -57,5 +59,13 @@ public class EWayBillVehicleAudit {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public Long getBusinessId() {
+        return businessId;
+    }
+
+    public void setBusinessId(Long businessId) {
+        this.businessId = businessId;
     }
 }

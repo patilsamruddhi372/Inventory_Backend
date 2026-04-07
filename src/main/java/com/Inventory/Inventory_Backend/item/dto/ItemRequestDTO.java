@@ -16,6 +16,7 @@ public class ItemRequestDTO {
     // REQUIRED
     // ===============================
 
+
     @NotBlank(message = "Item name is required")
     @Size(min = 1, max = 200, message = "Name must be 1–200 characters")
     private String name;

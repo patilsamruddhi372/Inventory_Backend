@@ -1,8 +1,10 @@
 package com.Inventory.Inventory_Backend.ewaybill.controller;
 
+import com.Inventory.Inventory_Backend.common.BusinessContext;
 import com.Inventory.Inventory_Backend.ewaybill.dto.*;
 import com.Inventory.Inventory_Backend.ewaybill.service.EWayBillService;
 import jakarta.validation.Valid;
+import org.flywaydb.core.internal.util.JsonUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,15 +15,24 @@ public class EwayBillController {
 
     private final EWayBillService service;
 
-    public EwayBillController(EWayBillService service) {
+    private final BusinessContext businessContext;
+
+
+    public EwayBillController(EWayBillService service, BusinessContext businessContext) {
         this.service = service;
+        this.businessContext = businessContext;
     }
 
     // Create EWay Bill
     @PostMapping
     public ResponseEntity<EWayBillResponse> createEWayBill(
-            @RequestParam Long businessId,
             @Valid @RequestBody EWayBillCreateRequest request) {
+
+        Long businessId = businessContext.getBusinessId();
+
+        if (businessId == null) {
+            throw new RuntimeException("Business ID missing");
+        }
         EWayBillResponse response = service.createEWayBill(businessId, request);
         return ResponseEntity.ok(response);
     }
@@ -29,8 +40,13 @@ public class EwayBillController {
     // Get Single Bill
     @GetMapping("/{id}")
     public ResponseEntity<EWayBillResponse> getEWayBill(
-            @RequestParam Long businessId,
             @PathVariable Long id) {
+
+        Long businessId = businessContext.getBusinessId();
+
+        if (businessId == null) {
+            throw new RuntimeException("Business ID missing");
+        }
         EWayBillResponse response = service.getEWayBill(businessId, id);
         return ResponseEntity.ok(response);
     }
@@ -38,9 +54,14 @@ public class EwayBillController {
     // Update Bill
     @PutMapping("/{id}")
     public ResponseEntity<EWayBillResponse> updateEWayBill(
-            @RequestParam Long businessId,
             @PathVariable Long id,
             @RequestBody EWayBillUpdateRequest request) {
+
+        Long businessId = businessContext.getBusinessId();
+
+        if (businessId == null) {
+            throw new RuntimeException("Business ID missing");
+        }
         EWayBillResponse response = service.updateEWayBill(businessId, id, request);
         return ResponseEntity.ok(response);
     }
@@ -48,8 +69,13 @@ public class EwayBillController {
     // Delete Bill
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteEWayBill(
-            @RequestParam Long businessId,
             @PathVariable Long id) {
+
+        Long businessId = businessContext.getBusinessId();
+
+        if (businessId == null) {
+            throw new RuntimeException("Business ID missing");
+        }
         service.deleteEWayBill(businessId, id);
         return ResponseEntity.noContent().build();
     }
@@ -57,9 +83,14 @@ public class EwayBillController {
     // Update Vehicle
     @PatchMapping("/{id}/vehicle")
     public ResponseEntity<EWayBillResponse> updateVehicle(
-            @RequestParam Long businessId,
             @PathVariable Long id,
             @RequestBody EWayBillVehicleUpdateRequest request) {
+
+        Long businessId = businessContext.getBusinessId();
+
+        if (businessId == null) {
+            throw new RuntimeException("Business ID missing");
+        }
         EWayBillResponse response = service.updateVehicle(businessId, id, request);
         return ResponseEntity.ok(response);
     }
@@ -67,9 +98,14 @@ public class EwayBillController {
     // Extend Validity
     @PatchMapping("/{id}/extend-validity")
     public ResponseEntity<EWayBillResponse> extendValidity(
-            @RequestParam Long businessId,
             @PathVariable Long id,
             @RequestBody EWayBillExtendValidityRequest request) {
+
+        Long businessId = businessContext.getBusinessId();
+
+        if (businessId == null) {
+            throw new RuntimeException("Business ID missing");
+        }
         EWayBillResponse response = service.extendValidity(businessId, id, request);
         return ResponseEntity.ok(response);
     }
@@ -77,8 +113,13 @@ public class EwayBillController {
     // Cancel Bill
     @PatchMapping("/{id}/cancel")
     public ResponseEntity<Void> cancelEWayBill(
-            @RequestParam Long businessId,
             @PathVariable Long id) {
+        Long businessId = businessContext.getBusinessId();
+
+        if (businessId == null) {
+            throw new RuntimeException("Business ID missing");
+        }
+
         service.cancelEWayBill(businessId, id);
         return ResponseEntity.noContent().build();
     }
@@ -86,9 +127,15 @@ public class EwayBillController {
     //get all bills with pagination
     @GetMapping
     public Page<EWayBillResponse> getAllBills(
-            @RequestParam Long businessId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
+
+        Long businessId = businessContext.getBusinessId();
+
+        if (businessId == null) {
+            throw new RuntimeException("Business ID missing");
+        }
+
         return service.getAllBills(businessId, page, size);
     }
 

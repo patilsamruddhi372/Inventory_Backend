@@ -1,5 +1,6 @@
 package com.Inventory.Inventory_Backend.item.controller;
 
+import com.Inventory.Inventory_Backend.auth.util.JwtUtil;
 import com.Inventory.Inventory_Backend.item.dto.ItemRequestDTO;
 import com.Inventory.Inventory_Backend.item.dto.ItemResponseDTO;
 import com.Inventory.Inventory_Backend.item.service.ItemService;
@@ -7,6 +8,7 @@ import com.Inventory.Inventory_Backend.item.service.ItemService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +21,9 @@ import java.util.Set;
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 public class ItemController {
+
+    @Autowired
+    private JwtUtil jwtUtil;
 
     private final ItemService itemService;
 

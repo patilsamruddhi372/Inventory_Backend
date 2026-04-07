@@ -1,5 +1,6 @@
 package com.Inventory.Inventory_Backend.settings.entity;
 
+import com.Inventory.Inventory_Backend.User.entity.User;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -71,4 +72,8 @@ public class Business {
 
     @Column(name = "payment_method")
     private String paymentMethod;
+
+    @ManyToOne
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 }

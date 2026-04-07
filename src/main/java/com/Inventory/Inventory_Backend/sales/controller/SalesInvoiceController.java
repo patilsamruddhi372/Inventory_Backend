@@ -28,7 +28,11 @@ public class SalesInvoiceController {
     public ResponseEntity<SalesInvoiceResponseDTO> createSalesInvoice(
             @Valid @RequestBody SalesInvoiceRequestDTO request) {
 
-        Long businessId = businessContext.getCurrentBusinessId(); // ✅ UPDATED
+        Long businessId = businessContext.getBusinessId(); // ✅ UPDATED
+
+        if(businessId == null) {
+            throw new RuntimeException("Business Id is missing in request");
+        }
 
         SalesInvoiceResponseDTO response =
                 salesInvoiceService.createSalesInvoice(businessId, request);
@@ -42,7 +46,11 @@ public class SalesInvoiceController {
     @GetMapping
     public ResponseEntity<List<SalesInvoiceResponseDTO>> getAllSalesInvoices() {
 
-        Long businessId = businessContext.getCurrentBusinessId(); // ✅ UPDATED
+        Long businessId = businessContext.getBusinessId(); // ✅ UPDATED
+
+        if(businessId == null) {
+            throw new RuntimeException("Business Id is missing in request");
+        }
 
         List<SalesInvoiceResponseDTO> invoices =
                 salesInvoiceService.getAllSalesInvoices(businessId);
@@ -57,7 +65,11 @@ public class SalesInvoiceController {
     public ResponseEntity<SalesInvoiceResponseDTO> getSalesInvoiceById(
             @PathVariable("id") Long invoiceId) {
 
-        Long businessId = businessContext.getCurrentBusinessId(); // ✅ UPDATED
+        Long businessId = businessContext.getBusinessId(); // ✅ UPDATED
+
+        if(businessId == null) {
+            throw new RuntimeException("Business Id is missing in request");
+        }
 
         SalesInvoiceResponseDTO response =
                 salesInvoiceService.getSalesInvoiceById(businessId, invoiceId);
@@ -73,7 +85,11 @@ public class SalesInvoiceController {
             @PathVariable("id") Long invoiceId,
             @Valid @RequestBody SalesInvoiceRequestDTO request) {
 
-        Long businessId = businessContext.getCurrentBusinessId(); // ✅ UPDATED
+        Long businessId = businessContext.getBusinessId(); // ✅ UPDATED
+
+        if(businessId == null) {
+            throw new RuntimeException("Business Id is missing in request");
+        }
 
         SalesInvoiceResponseDTO response =
                 salesInvoiceService.updateSalesInvoice(businessId, invoiceId, request);
@@ -88,7 +104,11 @@ public class SalesInvoiceController {
     public ResponseEntity<Void> deleteSalesInvoice(
             @PathVariable("id") Long invoiceId) {
 
-        Long businessId = businessContext.getCurrentBusinessId(); // ✅ UPDATED
+        Long businessId = businessContext.getBusinessId(); // ✅ UPDATED
+
+        if(businessId == null) {
+            throw new RuntimeException("Business Id is missing in request");
+        }
 
         salesInvoiceService.deleteSalesInvoice(businessId, invoiceId);
 
@@ -102,7 +122,11 @@ public class SalesInvoiceController {
     public ResponseEntity<SalesInvoiceResponseDTO> cancelSalesInvoice(
             @PathVariable("id") Long invoiceId) {
 
-        Long businessId = businessContext.getCurrentBusinessId(); // ✅ UPDATED
+        Long businessId = businessContext.getBusinessId(); // ✅ UPDATED
+
+        if(businessId == null) {
+            throw new RuntimeException("Business Id is missing in request");
+        }
 
         SalesInvoiceResponseDTO response =
                 salesInvoiceService.cancelInvoice(businessId, invoiceId);

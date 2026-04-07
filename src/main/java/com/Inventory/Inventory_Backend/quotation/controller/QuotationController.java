@@ -30,7 +30,11 @@ public class QuotationController {
     public ResponseEntity<QuotationResponseDTO> create(
             @Valid @RequestBody QuotationRequestDTO request) {
 
-        Long businessId = businessContext.getCurrentBusinessId();
+        Long businessId = businessContext.getBusinessId();
+
+        if(businessId == null) {
+            throw new RuntimeException("Business Id is missing in request");
+        }
 
         QuotationResponseDTO response =
                 quotationService.createQuotation(businessId, request);
@@ -45,7 +49,11 @@ public class QuotationController {
     @GetMapping
     public ResponseEntity<List<QuotationResponseDTO>> getAll() {
 
-        Long businessId = businessContext.getCurrentBusinessId();
+        Long businessId = businessContext.getBusinessId();
+
+        if(businessId == null) {
+            throw new RuntimeException("Business Id is missing in request");
+        }
 
         List<QuotationResponseDTO> quotations =
                 quotationService.getAllQuotations(businessId);
@@ -61,7 +69,11 @@ public class QuotationController {
     public ResponseEntity<QuotationResponseDTO> getById(
             @PathVariable Long quotationId) {
 
-        Long businessId = businessContext.getCurrentBusinessId();
+        Long businessId = businessContext.getBusinessId();
+
+        if(businessId == null) {
+            throw new RuntimeException("Business Id is missing in request");
+        }
 
         QuotationResponseDTO quotation =
                 quotationService.getQuotationById(businessId, quotationId);
@@ -77,7 +89,11 @@ public class QuotationController {
     public ResponseEntity<Void> delete(
             @PathVariable Long quotationId) {
 
-        Long businessId = businessContext.getCurrentBusinessId();
+        Long businessId = businessContext.getBusinessId();
+
+        if(businessId == null) {
+            throw new RuntimeException("Business Id is missing in request");
+        }
 
         quotationService.deleteQuotation(businessId, quotationId);
 
@@ -93,7 +109,11 @@ public class QuotationController {
             @PathVariable Long quotationId,
             @RequestBody QuotationStatusUpdateRequestDTO request) {
 
-        Long businessId = businessContext.getCurrentBusinessId();
+        Long businessId = businessContext.getBusinessId();
+
+        if(businessId == null) {
+            throw new RuntimeException("Business Id is missing in request");
+        }
 
         QuotationResponseDTO response =
                 quotationService.updateQuotationStatus(
@@ -113,7 +133,11 @@ public class QuotationController {
     public ResponseEntity<Long> convertToInvoice(
             @PathVariable Long quotationId) {
 
-        Long businessId = businessContext.getCurrentBusinessId();
+        Long businessId = businessContext.getBusinessId();
+
+        if(businessId == null) {
+            throw new RuntimeException("Business Id is missing in request");
+        }
 
         Long invoiceId =
                 quotationService.convertToSalesInvoice(businessId, quotationId);

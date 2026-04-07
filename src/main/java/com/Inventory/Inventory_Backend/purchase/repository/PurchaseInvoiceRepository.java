@@ -80,4 +80,9 @@ public interface PurchaseInvoiceRepository extends JpaRepository<PurchaseInvoice
             @Param("id") Long id,
             @Param("businessId") Long businessId
     );
+
+
+    boolean existsByPartyIdAndBusinessIdAndIsDeletedFalse(
+            Long partyId,
+            Long businessId);
 }

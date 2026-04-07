@@ -109,7 +109,7 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
 
         validatePartyExists(businessId, request.getPartyId());
 
-        restoreStockForItems(invoice.getItems());
+        restoreStockForItems(invoice.getItems(), businessId);
         invoice.getItems().clear();
 
         invoice.setPartyId(request.getPartyId());
@@ -165,7 +165,7 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
 
         SalesInvoice invoice = findActiveInvoice(businessId, invoiceId);
 
-        restoreStockForItems(invoice.getItems());
+        restoreStockForItems(invoice.getItems(), businessId);
         invoice.setStatus("CANCELLED");
 
         return salesMapper.toResponseDTO(invoiceRepository.save(invoice));
@@ -174,7 +174,8 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
     // ================= VALIDATION =================
     private void validatePartyExists(Long businessId, Long partyId) {
 
-        var party = partyRepository.findById(partyId)
+        var party = partyRepository
+                .findByIdAndBusinessIdAndIsActiveTrue(partyId, businessId)
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Customer not found: " + partyId));
 
@@ -215,11 +216,11 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
     }
 
     // ================= STOCK =================
-    private void restoreStockForItems(List<SalesInvoiceItem> items) {
+    private void restoreStockForItems(List<SalesInvoiceItem> items, Long businessId) {
 
         for (SalesInvoiceItem item : items) {
             stockService.increaseStock(
-                    item.getBusinessId(),
+                    businessId,
                     item.getItemId(),
                     item.getQuantity(),
                     null
@@ -234,14 +235,19 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
 
         for (SalesInvoiceItemDTO dto : items) {
 
-            Item item = itemRepository.findById(dto.getItemId())
+            Item item = itemRepository
+                    .findByIdAndBusinessId(dto.getItemId(), businessId)
                     .orElseThrow(() ->
                             new ResourceNotFoundException("Item not found"));
 
             StockResponseDTO stock = stockService.getStock(businessId, dto.getItemId());
 
-            if (stock.getQuantity().compareTo(dto.getQuantity()) < 0) {
-                throw new InsufficientStockException("Insufficient stock");
+            BigDecimal availableQty = stock != null
+                    ? stock.getQuantity()
+                    : BigDecimal.ZERO;
+
+            if (availableQty.compareTo(dto.getQuantity()) < 0) {
+                throw new RuntimeException("Insufficient stock for item: " + item.getName());
             }
 
             SalesInvoiceItem entity = SalesInvoiceItem.builder()

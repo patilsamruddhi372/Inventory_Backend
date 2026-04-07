@@ -28,4 +28,6 @@ public class SettingsResponseDTO {
     private LocalDate validFrom;
     private LocalDate validTill;
     private Long daysRemaining;
+
+    private Long id;
 }

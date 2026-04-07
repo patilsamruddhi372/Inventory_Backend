@@ -1,12 +1,18 @@
 package com.Inventory.Inventory_Backend.common;
 
 import org.springframework.stereotype.Component;
+import org.springframework.web.context.annotation.RequestScope;
 
 @Component
+@RequestScope
 public class BusinessContext {
+    private Long businessId;
 
-    // Temporary: always return default business
-    public Long getCurrentBusinessId() {
-        return 1L;
+    public Long getBusinessId() {
+        return businessId;
+    }
+
+    public void setBusinessId(Long businessId) {
+        this.businessId = businessId;
     }
 }

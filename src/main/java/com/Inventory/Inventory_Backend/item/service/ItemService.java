@@ -1,5 +1,6 @@
 package com.Inventory.Inventory_Backend.item.service;
 
+import com.Inventory.Inventory_Backend.common.BusinessContext;
 import com.Inventory.Inventory_Backend.item.entity.Item;
 import com.Inventory.Inventory_Backend.item.dto.ItemMapper;
 import com.Inventory.Inventory_Backend.item.dto.ItemRequestDTO;
@@ -41,9 +42,16 @@ public class ItemService {
     private final SalesInvoiceItemRepository salesItemRepository;
     private final QuotationItemRepository quotationItemRepository;
 
-    // TODO replace with BusinessContext later
-    private Long getCurrentBusinessId() {
-        return 1L;
+    private final BusinessContext businessContext;
+
+    private Long getCurrentBusinessId(){
+        Long businessId = businessContext.getBusinessId();
+
+        if(businessId == null){
+            throw new RuntimeException("Business ID not found in context");
+        }
+
+        return businessId;
     }
 
     // =========================

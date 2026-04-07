@@ -1,0 +1,7 @@
+CREATE TABLE password_reset_otp(
+    id BIGSERIAL PRIMARY KEY,
+    email VARCHAR(255) NOT NULL,
+    otp VARCHAR(255) NOT NULL,
+    expiry_time TIMESTAMP NOT NULL,
+    used BOOLEAN DEFAULT FALSE
+);

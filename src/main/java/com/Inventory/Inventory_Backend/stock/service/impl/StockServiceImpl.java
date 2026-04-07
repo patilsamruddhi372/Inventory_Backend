@@ -35,26 +35,20 @@ public class StockServiceImpl implements StockService {
 
         Stock stock = stockRepository
                 .findByBusinessIdAndItemId(businessId, itemId)
-                .orElse(null);
+                .orElseGet(() -> {
+                    Stock newStock = new Stock();
+                    newStock.setBusinessId(businessId);
+                    newStock.setItemId(itemId);
+                    newStock.setQuantity(BigDecimal.ZERO);
+                    newStock.setCreatedAt(LocalDateTime.now());
+                    return newStock;
+                });
 
-        if (stock == null) {
+        BigDecimal currentQty = Optional.ofNullable(stock.getQuantity())
+                .orElse(BigDecimal.ZERO);
 
-            stock = Stock.builder()
-                    .businessId(businessId)
-                    .itemId(itemId)
-                    .quantity(quantity != null ? quantity : BigDecimal.ZERO)
-                    .createdAt(LocalDateTime.now())
-                    .updatedAt(LocalDateTime.now())
-                    .build();
-
-        } else {
-
-            BigDecimal currentQty = Optional.ofNullable(stock.getQuantity())
-                    .orElse(BigDecimal.ZERO);
-
-            stock.setQuantity(currentQty.add(quantity));
-            stock.setUpdatedAt(LocalDateTime.now());
-        }
+        stock.setQuantity(currentQty.add(quantity));
+        stock.setUpdatedAt(LocalDateTime.now());
 
         stockRepository.save(stock);
 
@@ -172,12 +166,21 @@ public class StockServiceImpl implements StockService {
                 .findByBusinessIdAndItemId(businessId, itemId)
                 .orElse(null);
 
-        if (stock == null) return null;
+        if (stock == null){
+            return StockResponseDTO.builder()
+                    .businessId(businessId)
+                    .itemId(itemId)
+                    .quantity(BigDecimal.ZERO)
+                    .build();
+        }
 
         return StockResponseDTO.builder()
                 .businessId(stock.getBusinessId())
                 .itemId(stock.getItemId())
-                .quantity(stock.getQuantity())
+                .quantity(
+                        stock.getQuantity() != null
+                        ? stock.getQuantity()
+                        : BigDecimal.ZERO)
                 .build();
     }
 

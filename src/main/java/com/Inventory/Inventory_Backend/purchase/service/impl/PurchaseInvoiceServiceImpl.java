@@ -58,18 +58,18 @@ public class PurchaseInvoiceServiceImpl implements PurchaseInvoiceService {
 
         calculateInvoiceTotals(invoice, request);
 
-        PurchaseInvoice saved = invoiceRepository.save(invoice);
-
-        for (PurchaseInvoiceItem item : saved.getItems()) {
+        invoiceRepository.save(invoice);
+        System.out.println("Items count: " + invoice.getItems().size());
+        for (PurchaseInvoiceItem item : invoice.getItems()) {
             stockService.increaseStock(
                     businessId,
                     item.getItemId(),
                     item.getQuantity(),
-                    saved.getId()
+                    invoice.getId()
             );
         }
 
-        return mapper.toResponseDTO(saved);
+        return mapper.toResponseDTO(invoice);
     }
 
     // ================= GET =================
@@ -107,13 +107,37 @@ public class PurchaseInvoiceServiceImpl implements PurchaseInvoiceService {
         validateBillNumberIsUniqueForUpdate(businessId, request.getBillNumber(), id);
         validateAllItemsBelongToBusiness(request.getItems(), businessId);
 
+        //step 1: restore old stock first
+        for(PurchaseInvoiceItem item : invoice.getItems()){
+            stockService.decreaseStock(
+                    businessId,
+                    item.getItemId(),
+                    item.getQuantity(),
+                    invoice.getId()
+            );
+        }
+        //thn clear items
+        invoice.getItems().clear();
+
+        //update fields
         invoice.setPartyId(request.getPartyId());
         invoice.setBillNumber(request.getBillNumber());
-        invoice.setItems(new ArrayList<>());
 
         calculateInvoiceTotals(invoice, request);
 
-        return mapper.toResponseDTO(invoiceRepository.save(invoice));
+        PurchaseInvoice saved = invoiceRepository.save(invoice);
+
+        //step 2: apply new stock
+        for(PurchaseInvoiceItem item : saved.getItems()) {
+            stockService.increaseStock(
+                    businessId,
+                    item.getItemId(),
+                    item.getQuantity(),
+                    saved.getId()
+            );
+        }
+
+        return mapper.toResponseDTO(saved);
     }
 
     // ================= DELETE =================
@@ -143,6 +167,15 @@ public class PurchaseInvoiceServiceImpl implements PurchaseInvoiceService {
                 .findByIdAndBusinessIdAndIsDeletedFalse(id, businessId)
                 .orElseThrow(() -> new PurchaseInvoiceNotFoundException(id, businessId));
 
+        for(PurchaseInvoiceItem item : invoice.getItems()){
+            stockService.decreaseStock(
+                    businessId,
+                    item.getItemId(),
+                    item.getQuantity(),
+                    invoice.getId()
+            );
+        }
+
         invoice.setStatus("CANCELLED");
 
         return mapper.toResponseDTO(invoiceRepository.save(invoice));
@@ -152,12 +185,9 @@ public class PurchaseInvoiceServiceImpl implements PurchaseInvoiceService {
 
     private void validatePartyBelongsToBusiness(Long partyId, Long businessId) {
 
-        var party = partyRepository.findById(partyId)
+        var party = partyRepository
+                .findByIdAndBusinessIdAndIsActiveTrue(partyId, businessId)
                 .orElseThrow(() -> new IllegalArgumentException("Party not found"));
-
-        if (!party.getBusinessId().equals(businessId)) {
-            throw new IllegalArgumentException("Invalid business");
-        }
 
         // ✅ ENUM FIX
         if (party.getType() != PartyType.SUPPLIER &&
@@ -211,6 +241,8 @@ public class PurchaseInvoiceServiceImpl implements PurchaseInvoiceService {
             total = total.add(amount);
 
             PurchaseInvoiceItem entity = mapper.toItemEntity(item);
+            //multi tenant safety
+            entity.setBusinessId(invoice.getBusinessId());
             invoice.addItem(entity);
         }
 

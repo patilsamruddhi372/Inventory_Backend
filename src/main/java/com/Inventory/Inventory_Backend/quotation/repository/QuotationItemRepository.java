@@ -13,7 +13,7 @@ public interface QuotationItemRepository extends JpaRepository<QuotationItem, Lo
     // FIND ITEMS BY QUOTATION
     // ======================================================
 
-    List<QuotationItem> findByQuotationId(Long quotationId);
+    List<QuotationItem> findByQuotationIdAndBusinessId(Long quotationId, Long businessId);
 
 
     // ======================================================

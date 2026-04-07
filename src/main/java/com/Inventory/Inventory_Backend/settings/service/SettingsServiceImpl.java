@@ -1,5 +1,6 @@
 package com.Inventory.Inventory_Backend.settings.service;
 
+import com.Inventory.Inventory_Backend.auth.util.JwtUtil;
 import com.Inventory.Inventory_Backend.settings.dto.BillingDetailsRequestDTO;
 import com.Inventory.Inventory_Backend.settings.dto.SettingsResponseDTO;
 import com.Inventory.Inventory_Backend.settings.dto.SubscriptionRequestDTO;
@@ -10,12 +11,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class SettingsServiceImpl implements SettingsService{
 
     private final BusinessRepository businessRepository;
+
+    private final JwtUtil jwtUtil;
 
     @Override
     public SettingsResponseDTO getSettings(Long businessId) {
@@ -150,6 +154,12 @@ public class SettingsServiceImpl implements SettingsService{
 
         businessRepository.save(business);
     }
+
+    @Override
+    public Long extractUserIdFromToken(String token) {
+        return jwtUtil.extractUserId(token);
+    }
+
     @Override
     public BillingDetailsRequestDTO getBillingDetails(Long businessId) {
 
@@ -167,6 +177,34 @@ public class SettingsServiceImpl implements SettingsService{
         response.setBillingZipcode(business.getBillingZipcode());
         response.setBillingCountry(business.getBillingCountry());
         response.setPaymentMethod(business.getPaymentMethod());
+
+        return response;
+    }
+
+    @Override
+    public SettingsResponseDTO getSettingsByUserId(Long userId) {
+
+        List<Business> businesses = businessRepository.findAllByUserId(userId);
+
+        if (businesses == null || businesses.isEmpty()) {
+            throw new RuntimeException("No business found for user");
+        }
+
+        // 🔥 pick FIRST business (for now)
+        Business business = businesses.get(0);
+
+        SettingsResponseDTO response = new SettingsResponseDTO();
+
+        response.setId(business.getId()); // IMPORTANT
+        response.setBusinessName(business.getName());
+        response.setGstin(business.getGstNumber());
+        response.setAddress(business.getAddress());
+        response.setCity(business.getCity());
+        response.setState(business.getState());
+        response.setPincode(business.getPincode());
+
+        response.setGstEnabled(business.getGstRegistered());
+        response.setStockEnabled(business.getEnableStockManagement());
 
         return response;
     }

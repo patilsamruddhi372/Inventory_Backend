@@ -22,7 +22,7 @@ public interface EWayBillRepository extends JpaRepository<EWayBill, Long> {
     Optional<EWayBill> findByIdAndBusinessIdAndIsActiveTrue(Long id, Long businessId);
 
     //Query by Sales Invoice
-    Optional<EWayBill> findBySalesInvoiceId(Long salesInvoiceId);
+    Optional<EWayBill> findBySalesInvoiceIdAndBusinessId(Long salesInvoiceId, Long businessId);
 
     //Query for active bills
     List<EWayBill> findByStatus(EWayBillStatus status);
@@ -36,10 +36,13 @@ public interface EWayBillRepository extends JpaRepository<EWayBill, Long> {
            SET e.status = 'EXPIRED'
            WHERE e.validUntil < :now
            AND e.status = 'ACTIVE'
+           AND e.isActive = true
      """)
     int expiredOldBills(LocalDateTime now);
 
     Page<EWayBill> findByBusinessIdAndIsActiveTrue(Long businessId, Pageable pageable);
+
+    Optional<EWayBill> findTopByBusinessIdOrderByIdDesc(Long businessId);
 
 
 }

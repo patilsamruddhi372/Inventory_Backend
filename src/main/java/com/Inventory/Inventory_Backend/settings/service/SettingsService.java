@@ -10,7 +10,11 @@ public interface SettingsService {
     SettingsResponseDTO getSettings(Long businessId);
     BillingDetailsRequestDTO getBillingDetails(Long businessId);
 
+    SettingsResponseDTO getSettingsByUserId(Long userId);
+
     void updateSettings(Long businessId, UpdateSettingsRequestDTO request);
     void createSubscription(SubscriptionRequestDTO request);
     void saveBillingDetails(BillingDetailsRequestDTO request);
+
+    Long extractUserIdFromToken(String token);
 }

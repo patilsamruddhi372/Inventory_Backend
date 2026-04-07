@@ -7,6 +7,9 @@ import com.Inventory.Inventory_Backend.party.entity.Party;
 import com.Inventory.Inventory_Backend.party.entity.PartyType;
 import com.Inventory.Inventory_Backend.party.repository.PartyRepository;
 
+import com.Inventory.Inventory_Backend.purchase.repository.PurchaseInvoiceItemRepository;
+import com.Inventory.Inventory_Backend.purchase.repository.PurchaseInvoiceRepository;
+import com.Inventory.Inventory_Backend.sales.repository.SalesInvoiceRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -15,9 +18,17 @@ import java.util.List;
 public class PartyServiceImpl implements PartyService {
 
     private final PartyRepository repository;
+    private final PurchaseInvoiceRepository purchaseInvoiceRepository;
+    private final SalesInvoiceRepository salesInvoiceRepository;
+    private final PurchaseInvoiceItemRepository purchaseInvoiceItemRepository;
 
-    public PartyServiceImpl(PartyRepository repository) {
+    public PartyServiceImpl(PartyRepository repository,
+                            PurchaseInvoiceRepository purchaseInvoiceRepository, SalesInvoiceRepository salesInvoiceRepository,
+                            PurchaseInvoiceItemRepository purchaseInvoiceItemRepository) {
         this.repository = repository;
+        this.purchaseInvoiceRepository = purchaseInvoiceRepository;
+        this.salesInvoiceRepository = salesInvoiceRepository;
+        this.purchaseInvoiceItemRepository = purchaseInvoiceItemRepository;
     }
 
     // -------- CREATE --------
@@ -41,7 +52,7 @@ public class PartyServiceImpl implements PartyService {
 
         Party party = new Party();
         party.setBusinessId(businessId);
-        party.setName(request.getName());
+        party.setName(request.getName().trim());
         party.setType(request.getType());
         party.setGstin(request.getGstin());
         party.setSinceDate(request.getSinceDate());
@@ -229,6 +240,18 @@ public class PartyServiceImpl implements PartyService {
         Party existing = repository.findByIdAndBusinessIdAndIsActiveTrue(id, businessId)
                 .orElseThrow(() -> new RuntimeException("Party not found"));
 
+        //check dependencies
+        boolean usedInSales =
+                salesInvoiceRepository.existsByPartyIdAndBusinessIdAndIsDeletedFalse(id, businessId);
+
+        boolean usedInPurchase =
+                purchaseInvoiceRepository.existsByPartyIdAndBusinessIdAndIsDeletedFalse(id, businessId);
+
+        if(usedInSales || usedInPurchase){
+            throw new RuntimeException("Cannot delete party used in invoices");
+        }
+
+        //soft delete
         existing.setIsActive(false);
         repository.save(existing);
     }

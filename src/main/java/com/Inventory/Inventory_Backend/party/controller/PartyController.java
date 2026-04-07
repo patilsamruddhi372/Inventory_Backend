@@ -32,7 +32,11 @@ public class PartyController {
     public ResponseEntity<PartyResponse> create(
             @Valid @RequestBody PartyCreateRequest request) {
 
-        Long businessId = businessContext.getCurrentBusinessId();
+        Long businessId = businessContext.getBusinessId();
+
+        if(businessId == null) {
+            throw new RuntimeException("Business Id is missing in request");
+        }
         return ResponseEntity.ok(service.create(businessId, request));
     }
 
@@ -41,7 +45,10 @@ public class PartyController {
     public ResponseEntity<List<PartyResponse>> getAll(
             @RequestParam(required = false) PartyType type) { // ✅ added
 
-        Long businessId = businessContext.getCurrentBusinessId();
+        Long businessId = businessContext.getBusinessId();
+        if(businessId == null) {
+            throw new RuntimeException("Business Id is missing in request");
+        }
 
         // ✅ if filter applied
         if (type != null) {
@@ -53,7 +60,16 @@ public class PartyController {
     }
 
     // -------- GET BY ID --------
-    // ✅ if filter applied
+    @GetMapping("/{id}")
+    public ResponseEntity<PartyResponse> getById(@PathVariable Long id){
+        Long businessId = businessContext.getBusinessId();
+
+        if(businessId == null ){
+            throw new RuntimeException("Business Id is missing in request");
+        }
+
+        return ResponseEntity.ok(service.getById(businessId, id));
+    }
 
 
     // -------- FULL UPDATE --------
@@ -62,7 +78,12 @@ public class PartyController {
             @PathVariable Long id,
             @Valid @RequestBody PartyUpdateRequest request) {
 
-        Long businessId = businessContext.getCurrentBusinessId();
+        Long businessId = businessContext.getBusinessId();
+
+        if(businessId == null) {
+            throw new RuntimeException("Business Id is missing in request");
+        }
+
         return ResponseEntity.ok(service.update(businessId, id, request));
     }
 
@@ -72,7 +93,12 @@ public class PartyController {
             @PathVariable Long id,
             @RequestBody PartyUpdateRequest request) {
 
-        Long businessId = businessContext.getCurrentBusinessId();
+        Long businessId = businessContext.getBusinessId();
+
+        if(businessId == null) {
+            throw new RuntimeException("Business Id is missing in request");
+        }
+
         return ResponseEntity.ok(service.patchUpdate(businessId, id, request));
     }
 
@@ -81,7 +107,12 @@ public class PartyController {
     public ResponseEntity<Void> delete(
             @PathVariable Long id) {
 
-        Long businessId = businessContext.getCurrentBusinessId();
+        Long businessId = businessContext.getBusinessId();
+
+        if(businessId == null) {
+            throw new RuntimeException("Business Id is missing in request");
+        }
+
         service.delete(businessId, id);
         return ResponseEntity.noContent().build();
     }

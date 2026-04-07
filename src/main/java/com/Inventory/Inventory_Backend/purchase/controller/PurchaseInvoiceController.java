@@ -30,7 +30,11 @@ public class PurchaseInvoiceController {
     public ResponseEntity<PurchaseInvoiceResponseDTO> createPurchaseInvoice(
             @Valid @RequestBody PurchaseInvoiceRequestDTO requestDTO) {
 
-        Long businessId = businessContext.getCurrentBusinessId();
+        Long businessId = businessContext.getBusinessId();
+
+        if(businessId == null) {
+            throw new RuntimeException("Business Id is missing in request");
+        }
 
         log.info("POST /api/purchases — businessId={}, billNumber={}",
                 businessId, requestDTO.getBillNumber());
@@ -47,7 +51,11 @@ public class PurchaseInvoiceController {
     @GetMapping
     public ResponseEntity<List<PurchaseInvoiceResponseDTO>> getAllPurchaseInvoices() {
 
-        Long businessId = businessContext.getCurrentBusinessId();
+        Long businessId = businessContext.getBusinessId();
+
+        if(businessId == null) {
+            throw new RuntimeException("Business Id is missing in request");
+        }
 
         log.info("GET /api/purchases — businessId={}", businessId);
 
@@ -64,7 +72,11 @@ public class PurchaseInvoiceController {
     public ResponseEntity<PurchaseInvoiceResponseDTO> getPurchaseInvoiceById(
             @PathVariable Long id) {
 
-        Long businessId = businessContext.getCurrentBusinessId();
+        Long businessId = businessContext.getBusinessId();
+
+        if(businessId == null) {
+            throw new RuntimeException("Business Id is missing in request");
+        }
 
         log.info("GET /api/purchases/{} — businessId={}", id, businessId);
 
@@ -82,7 +94,11 @@ public class PurchaseInvoiceController {
             @PathVariable Long id,
             @Valid @RequestBody PurchaseInvoiceRequestDTO requestDTO) {
 
-        Long businessId = businessContext.getCurrentBusinessId();
+        Long businessId = businessContext.getBusinessId();
+
+        if(businessId == null) {
+            throw new RuntimeException("Business Id is missing in request");
+        }
 
         log.info("PUT /api/purchases/{} — businessId={}", id, businessId);
 
@@ -98,7 +114,11 @@ public class PurchaseInvoiceController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletePurchaseInvoice(@PathVariable Long id) {
 
-        Long businessId = businessContext.getCurrentBusinessId();
+        Long businessId = businessContext.getBusinessId();
+
+        if(businessId == null) {
+            throw new RuntimeException("Business Id is missing in request");
+        }
 
         log.info("DELETE /api/purchases/{} — businessId={}", id, businessId);
 
@@ -114,7 +134,11 @@ public class PurchaseInvoiceController {
     public ResponseEntity<PurchaseInvoiceResponseDTO> cancelPurchaseInvoice(
             @PathVariable Long id) {
 
-        Long businessId = businessContext.getCurrentBusinessId();
+        Long businessId = businessContext.getBusinessId();
+
+        if(businessId == null) {
+            throw new RuntimeException("Business Id is missing in request");
+        }
 
         log.info("PATCH /api/purchases/{}/cancel — businessId={}", id, businessId);
 

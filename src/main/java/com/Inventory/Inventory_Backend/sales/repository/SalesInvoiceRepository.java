@@ -44,4 +44,6 @@ public interface SalesInvoiceRepository extends JpaRepository<SalesInvoice, Long
             LIMIT 1
             """)
     Optional<String> findLatestInvoiceNumberByBusinessId(@Param("businessId") Long businessId);
+
+    boolean existsByPartyIdAndBusinessIdAndIsDeletedFalse(Long partyId, Long businessId);
 }
